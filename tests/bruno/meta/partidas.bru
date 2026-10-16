@@ -1,0 +1,24 @@
+meta {
+  name: Meta partidas
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/meta/partidas
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve partidas con descripcion", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+    expect(body[0]).to.have.property("partida_arancelaria");
+    expect(body[0]).to.have.property("descripcion_partida");
+  });
+}

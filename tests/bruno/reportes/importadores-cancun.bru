@@ -1,0 +1,21 @@
+meta {
+  name: Importadores Cancun
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/reportes/importadores-cancun?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Mensual
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/reportes/mensual
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("ordenado por mes ascendente", function() {
+    const meses = res.getBody().items.map((i) => i.mes);
+    const ordenados = [...meses].sort();
+    expect(meses).to.eql(ordenados);
+  });
+}

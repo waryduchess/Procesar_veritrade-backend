@@ -1,0 +1,25 @@
+meta {
+  name: Kpis
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/reportes/kpis
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("trae totales globales", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("valor_total_usd");
+    expect(body).to.have.property("volumen_total_kg");
+    expect(body).to.have.property("registros");
+    expect(body).to.have.property("importadores");
+  });
+}

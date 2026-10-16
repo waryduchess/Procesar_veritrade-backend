@@ -74,14 +74,27 @@ npx -y @usebruno/cli run --env local
 > El CLI de Bruno debe ejecutarse **desde la raíz de la colección** (`tests/bruno`).
 > También puedes abrir esa carpeta directamente en la app de Bruno.
 
+## Endpoints
+
+- `GET /health`
+- `GET /reportes/{importadores,importadores-cancun,proveedores,paises-origen,tipo-importacion,partidas,mensual,kpis}`
+- `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
+- `GET /meta/{aduanas,paises,partidas}`
+- `GET /exportar/{importadores,proveedores,importaciones}?formato=xlsx|csv`
+- `POST /procesamiento/upload`, `POST /procesamiento/cargar`, `GET /procesamiento/status/{job_id}`, `GET /procesamiento/historial`
+
+Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `aduana`,
+`pais_origen`, `partida`, `importador`, `exportador`, `page`, `page_size`, `top`,
+`order_by` (`valor_usd` | `volumen_kg` | `mes`), `desc`.
+
 ## Estructura
 
 ```
-app/                 # API FastAPI (config, database, main)
+app/                 # API FastAPI (config, database, models, schemas, routers, services, utils)
 database/            # schema.sql (tabla + vistas)
 tests/bruno/         # colección de pruebas Bruno
-procesar_veritrade.py# limpieza del Excel
-cargar_mysql.py      # carga a MySQL
+procesar_veritrade.py# limpieza del Excel (script standalone)
+cargar_mysql.py      # carga a MySQL (script standalone)
 docker-compose.yml   # MySQL 8
 ROADMAP.md           # plan de fases del proyecto
 ```

@@ -1,0 +1,21 @@
+meta {
+  name: Exportar proveedores xlsx
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/exportar/proveedores?formato=xlsx
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("content-type xlsx", function() {
+    expect(res.getHeader("content-type")).to.contain("spreadsheetml");
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Proveedores
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/reportes/proveedores?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("cada item trae exportador", function() {
+    expect(res.getBody().items[0]).to.have.property("exportador");
+  });
+}

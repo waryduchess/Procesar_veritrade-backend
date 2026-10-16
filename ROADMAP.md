@@ -73,22 +73,24 @@ Correr: `cd tests/bruno && npx @usebruno/cli run --env local`
 
 ### Fase 1 — Cimientos (0.5 día)
 
-- [ ] `app/config.py` con pydantic-settings (MYSQL_URL, API_PORT, etc.)
-- [ ] `app/database.py` con engine, SessionLocal, get_db
-- [ ] `app/main.py` mínimo con FastAPI, CORS, /health
-- [ ] Correr: `uvicorn app.main:app --reload`
-- [ ] Verificar: http://localhost:8000/docs
+- [x] `app/config.py` con pydantic-settings (MYSQL_URL, API_PORT, etc.)
+- [x] `app/database.py` con engine, SessionLocal, get_db
+- [x] `app/main.py` mínimo con FastAPI, CORS, /health
+- [x] Correr: `uvicorn app.main:app --reload`
+- [x] Verificar: http://localhost:8000/docs
 
 ### Fase 2 — Modelos y schemas (0.5 día)
 
-- [ ] `app/models.py`: tabla `importaciones` + vistas `v_*`
-- [ ] `app/schemas.py`: un schema Pydantic por cada vista
-- [ ] Schemas de request para filtros comunes
-- [ ] Schemas de respuesta paginada genéricos
+- [x] `app/models.py`: tabla `importaciones` + vistas `v_*`
+- [x] `app/schemas.py`: un schema Pydantic por cada vista
+- [x] Schemas de request para filtros comunes
+- [x] Schemas de respuesta paginada genéricos
 
 ### Fase 3 — Endpoints de reportes (1 día)
 
-Todos son GET, sin estado.
+Todos son GET, sin estado. **Completada** (agregación dinámica sobre `importaciones`
+para soportar filtros; `app/services/consultas.py` + `app/routers/reportes.py`).
+Tests Bruno en `tests/bruno/reportes/`.
 
 | Método | Endpoint                            | Descripción                              |
 |--------|-------------------------------------|------------------------------------------|
@@ -110,6 +112,8 @@ Query params comunes:
 
 ### Fase 4 — Datos crudos (0.5 día)
 
+Completada (`app/routers/importaciones.py` + `listar_importaciones` en `consultas.py`).
+
 | Método | Endpoint                       | Descripción                         |
 |--------|--------------------------------|-------------------------------------|
 | GET    | /importaciones                 | Listado paginado                    |
@@ -117,6 +121,9 @@ Query params comunes:
 | GET    | /importaciones/buscar?q=...    | Búsqueda en descripción comercial   |
 
 ### Fase 5 — Procesamiento (1 día)
+
+Completada (`app/services/{procesar,cargar,jobs}.py`, `app/routers/procesamiento.py`).
+Jobs síncronos en memoria (sin Redis/Celery).
 
 | Método | Endpoint                       | Descripción                              |
 |--------|--------------------------------|------------------------------------------|
@@ -130,6 +137,8 @@ Estrategia:
 - **Asíncrono** después, con BackgroundTasks o Celery + Redis.
 
 ### Fase 6 — Extras (1-2 días)
+
+Completada (`app/routers/{meta,exportar}.py`, `app/utils/exportacion.py`). Formatos xlsx y csv.
 
 | Método | Endpoint                                | Descripción                       |
 |--------|-----------------------------------------|-----------------------------------|

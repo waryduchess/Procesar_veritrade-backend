@@ -1,0 +1,32 @@
+meta {
+  name: Importadores
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/reportes/importadores?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("respeta top", function() {
+    expect(res.getBody().items.length).to.be.at.most(5);
+  });
+
+  test("cada item trae ranking", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("importador");
+    expect(item).to.have.property("valor_usd");
+    expect(item).to.have.property("pct_total");
+  });
+}

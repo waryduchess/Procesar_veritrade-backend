@@ -1,0 +1,22 @@
+meta {
+  name: Meta paises
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/meta/paises
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve arreglo no vacio", function() {
+    expect(res.getBody()).to.be.an("array");
+    expect(res.getBody().length).to.be.above(0);
+  });
+}

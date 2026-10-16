@@ -1,0 +1,21 @@
+meta {
+  name: Procesamiento historial
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/procesamiento/historial
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve arreglo", function() {
+    expect(res.getBody()).to.be.an("array");
+  });
+}

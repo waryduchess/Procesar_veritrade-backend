@@ -1,0 +1,30 @@
+meta {
+  name: Importaciones listado
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/importaciones?page_size=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("pagina con items", function() {
+    const body = res.getBody();
+    expect(body.items).to.be.an("array");
+    expect(body.total).to.be.above(0);
+  });
+
+  test("item trae campos base", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("id");
+    expect(item).to.have.property("partida_arancelaria");
+    expect(item).to.have.property("importador");
+  });
+}

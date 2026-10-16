@@ -1,0 +1,25 @@
+meta {
+  name: Exportar importadores csv
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/exportar/importadores?formato=csv&top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("content-type csv", function() {
+    expect(res.getHeader("content-type")).to.contain("text/csv");
+  });
+
+  test("devuelve filas", function() {
+    expect(res.getBody()).to.contain("importador");
+  });
+}

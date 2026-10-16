@@ -1,0 +1,25 @@
+meta {
+  name: Tipo Importacion
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/reportes/tipo-importacion
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("cada item trae tipo_importacion", function() {
+    expect(res.getBody().items[0]).to.have.property("tipo_importacion");
+  });
+}

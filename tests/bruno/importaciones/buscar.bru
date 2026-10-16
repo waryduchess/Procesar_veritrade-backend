@@ -1,0 +1,21 @@
+meta {
+  name: Importaciones buscar
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/importaciones/buscar?q=tilapia&page_size=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("encuentra resultados", function() {
+    expect(res.getBody().total).to.be.above(0);
+  });
+}

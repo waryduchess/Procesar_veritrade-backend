@@ -1,0 +1,26 @@
+meta {
+  name: Paises Origen
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/reportes/paises-origen?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("suma de pct_total no excede 100", function() {
+    const suma = res.getBody().items.reduce((acc, i) => acc + (i.pct_total || 0), 0);
+    expect(suma).to.be.at.most(100.001);
+  });
+}

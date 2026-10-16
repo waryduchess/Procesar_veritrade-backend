@@ -1,0 +1,25 @@
+meta {
+  name: Partidas
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/reportes/partidas?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("cada item trae partida_arancelaria", function() {
+    expect(res.getBody().items[0]).to.have.property("partida_arancelaria");
+  });
+}

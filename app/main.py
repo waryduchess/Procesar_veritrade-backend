@@ -1,9 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
 from app.config import settings
-from app.database import engine
+from app.routers import (
+    exportar,
+    health,
+    importaciones,
+    meta,
+    procesamiento,
+    reportes,
+)
 
 app = FastAPI(title="API Veritrade", version="0.1.0")
 
@@ -15,13 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/health", tags=["health"])
-def health() -> dict:
-    db_status = "ok"
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-    except Exception:
-        db_status = "error"
-    return {"status": "ok", "db": db_status}
+app.include_router(health.router)
+app.include_router(reportes.router)
+app.include_router(importaciones.router)
+app.include_router(meta.router)
+app.include_router(exportar.router)
+app.include_router(procesamiento.router)

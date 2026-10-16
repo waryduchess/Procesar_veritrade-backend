@@ -1,52 +1,140 @@
--- MVP Veritrade · esquema MySQL 8 / MariaDB 10.4+
-CREATE TABLE IF NOT EXISTS productos (
-  id        INT AUTO_INCREMENT PRIMARY KEY,
-  nombre    VARCHAR(80) NOT NULL UNIQUE,
-  fraccion8 CHAR(8)     NOT NULL,          -- fracción interna (8 dígitos); Veritrade usa 10
-  INDEX (fraccion8)                        -- NO única: pechuga y pierna/muslo de pato comparten 02074599
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+USE veritrade;
 
--- Un registro por Excel cargado (una fracción + un periodo)
-CREATE TABLE IF NOT EXISTS cargas (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  producto_id   INT NOT NULL,
-  fraccion10    CHAR(10) NOT NULL,         -- tal como viene en Veritrade
-  periodo_ini   DATE NOT NULL,             -- primer día del mes inicial
-  periodo_fin   DATE NOT NULL,             -- primer día del mes final
-  registros     INT NOT NULL DEFAULT 0,    -- totales de la hoja "Productos"
-  fob_usd       DECIMAL(18,2) NOT NULL DEFAULT 0,
-  kg            DECIMAL(18,2) NOT NULL DEFAULT 0,
-  archivo       VARCHAR(255) NOT NULL,
-  fecha_carga   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_carga (producto_id, periodo_ini, periodo_fin),
-  FOREIGN KEY (producto_id) REFERENCES productos(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- ---------- Tabla principal (fact) ----------
+CREATE TABLE importaciones (
+    id                       BIGINT AUTO_INCREMENT PRIMARY KEY,
 
--- Filas de las hojas Importadores, Exportadores, Países Origen, Vías Transporte y Aduanas
-CREATE TABLE IF NOT EXISTS detalle (
-  id         BIGINT AUTO_INCREMENT PRIMARY KEY,
-  carga_id   INT NOT NULL,
-  dimension  ENUM('importador','exportador','pais','via','aduana') NOT NULL,
-  nombre     VARCHAR(255) NOT NULL,
-  registros  INT NOT NULL DEFAULT 0,
-  fob_usd    DECIMAL(18,2) NOT NULL DEFAULT 0,
-  kg         DECIMAL(18,2) NULL,           -- NULL en aduanas (la columna KG de esa hoja viene corrupta)
-  INDEX (carga_id, dimension),
-  INDEX (dimension, nombre),
-  FOREIGN KEY (carga_id) REFERENCES cargas(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    -- Identificadores de la operación
+    partida_arancelaria      VARCHAR(20)  NOT NULL,
+    descripcion_partida      VARCHAR(500),
+    aduana                   VARCHAR(120),
+    dua                      VARCHAR(50),
+    numero_serie             VARCHAR(20),
+    fecha                    DATE,
+    codigo_tributario        VARCHAR(20),
 
--- Catálogo inicial (tu tabla)
-INSERT IGNORE INTO productos (nombre, fraccion8) VALUES
-  ('Filete de tilapia',        '03046101'),
-  ('Fileta de basa',           '03046201'),
-  ('Pulpo',                    '03075201'),
-  ('Atún',                     '03048701'),
-  ('Calamar',                  '03074302'),
-  ('Pato entero',              '02074201'),
-  ('Pechuga de pato S/H',      '02074599'),
-  ('Pierna y muslo de pato',   '02074599'),
-  ('Camarón',                  '03061791');
+    -- Importador
+    importador               VARCHAR(255),
+    ciudad_importador        VARCHAR(120),
+    direccion_importador     VARCHAR(500),
+    estado_importador        VARCHAR(120),
 
--- US$/KG no se guarda: se calcula, p. ej.
---   SELECT nombre, SUM(fob_usd)/NULLIF(SUM(kg),0) AS usd_kg FROM detalle WHERE ... GROUP BY nombre;
+    -- Exportador
+    exportador               VARCHAR(255),
+    ciudad_exportador        VARCHAR(120),
+    direccion_exportador     VARCHAR(500),
+
+    -- Cantidades y valores
+    qty1                     DECIMAL(18,3),
+    und1                     VARCHAR(20),
+    qty2                     DECIMAL(18,3),
+    und2                     VARCHAR(20),
+    valor_total_usd          DECIMAL(18,2),
+    valor_unit1_usd          DECIMAL(18,6),
+    valor_unit2_usd          DECIMAL(18,6),
+
+    -- Origen / logística
+    pais_origen              VARCHAR(120),
+    pais_compra              VARCHAR(120),
+    via                      VARCHAR(60),
+    descripcion_comercial    TEXT,
+    regimen                  TEXT,
+
+    -- Columnas calculadas en la ingesta
+    tipo_importacion         VARCHAR(60),
+    es_cancun                TINYINT(1) DEFAULT 0,
+    costo_unitario_kg        DECIMAL(18,6),
+    anio                     SMALLINT,
+    mes                      CHAR(7),
+
+    -- Auditoría
+    creado_en                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_importador    (importador),
+    INDEX idx_exportador    (exportador),
+    INDEX idx_partida       (partida_arancelaria),
+    INDEX idx_fecha         (fecha),
+    INDEX idx_aduana        (aduana),
+    INDEX idx_pais_origen   (pais_origen),
+    INDEX idx_tipo          (tipo_importacion),
+    INDEX idx_cancun        (es_cancun),
+    INDEX idx_mes           (mes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Vistas para los reportes ----------
+CREATE OR REPLACE VIEW v_importadores AS
+SELECT
+    importador,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) / NULLIF(SUM(qty1),0)             AS costo_unit_ponderado,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones) AS pct_total
+FROM importaciones
+GROUP BY importador;
+
+CREATE OR REPLACE VIEW v_importadores_cancun AS
+SELECT
+    importador,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) / NULLIF(SUM(qty1),0)             AS costo_unit_ponderado,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones WHERE es_cancun = 1) AS pct_total
+FROM importaciones
+WHERE es_cancun = 1
+GROUP BY importador;
+
+CREATE OR REPLACE VIEW v_proveedores AS
+SELECT
+    exportador,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) / NULLIF(SUM(qty1),0)             AS costo_unit_ponderado,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones) AS pct_total
+FROM importaciones
+GROUP BY exportador;
+
+CREATE OR REPLACE VIEW v_paises_origen AS
+SELECT
+    pais_origen,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones) AS pct_total
+FROM importaciones
+GROUP BY pais_origen;
+
+CREATE OR REPLACE VIEW v_tipo_importacion AS
+SELECT
+    tipo_importacion,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones) AS pct_total
+FROM importaciones
+GROUP BY tipo_importacion;
+
+CREATE OR REPLACE VIEW v_partidas AS
+SELECT
+    partida_arancelaria,
+    descripcion_partida,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) / NULLIF(SUM(qty1),0)             AS costo_unit_ponderado,
+    SUM(valor_total_usd) * 100.0 / (SELECT SUM(valor_total_usd) FROM importaciones) AS pct_total
+FROM importaciones
+GROUP BY partida_arancelaria, descripcion_partida;
+
+CREATE OR REPLACE VIEW v_mensual AS
+SELECT
+    mes,
+    SUM(valor_total_usd)                                   AS valor_usd,
+    SUM(qty1)                                              AS volumen_kg,
+    COUNT(*)                                               AS registros,
+    SUM(valor_total_usd) / NULLIF(SUM(qty1),0)             AS costo_unit_ponderado
+FROM importaciones
+GROUP BY mes
+ORDER BY mes;

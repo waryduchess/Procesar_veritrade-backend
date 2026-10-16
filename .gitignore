@@ -1,0 +1,19 @@
+# Entornos virtuales
+.venv/
+__pycache__/
+*.pyc
+
+# Datos de MySQL (bind mount de Docker)
+mysql_data/
+
+# Salidas del procesamiento
+salida/
+*.xlsx
+!requirements.txt
+
+# Variables de entorno
+.env
+
+# Sistema
+.DS_Store
+Thumbs.db

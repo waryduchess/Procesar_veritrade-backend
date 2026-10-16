@@ -3,3 +3,6 @@ openpyxl
 sqlalchemy
 pymysql
 cryptography
+fastapi
+uvicorn[standard]
+pydantic-settings

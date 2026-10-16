@@ -57,6 +57,18 @@ Stack: FastAPI + SQLAlchemy + MySQL + Docker.
 
 ---
 
+## Tests (Bruno)
+
+Colección en `tests/bruno/`:
+- `bruno.json` — definición de colección
+- `environments/local.bru` — `baseUrl=http://localhost:8000`
+- `health.bru` — 4 tests sobre GET /health
+
+Correr: `cd tests/bruno && npx @usebruno/cli run --env local`
+(Abrir la carpeta `tests/bruno` en la app Bruno.)
+
+---
+
 ## Fases
 
 ### Fase 1 — Cimientos (0.5 día)

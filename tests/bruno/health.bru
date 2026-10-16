@@ -1,0 +1,29 @@
+meta {
+  name: Health
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("status general ok", function() {
+    expect(res.getBody().status).to.equal("ok");
+  });
+
+  test("base de datos conectada", function() {
+    expect(res.getBody().db).to.equal("ok");
+  });
+
+  test("content-type json", function() {
+    expect(res.getHeader("content-type")).to.contain("application/json");
+  });
+}

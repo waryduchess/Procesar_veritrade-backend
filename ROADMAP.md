@@ -161,6 +161,43 @@ Los `/meta/*` alimentan los dropdowns del frontend.
 - [ ] Logs estructurados (loguru + JSON)
 - [ ] Health checks y métricas
 
+### Fase 8 — Capa de consulta y mejoras de datos (demo, sin IA)
+
+Completada (`app/services/asistente.py`, `app/routers/asistente.py`, `app/data/preguntas.json`).
+Sin LLM (no hay recurso/API key): glosario de preguntas precargadas + matching
+determinista por palabras clave.
+
+**Necesidades del usuario (fuente del glosario)**
+- Quién importa a México y a Cancún
+- Costos unitarios (USD/kg)
+- Volúmenes (kg)
+- Proveedores de origen: ordenados de mayor a menor y con su % del total
+- Importadores (ranking)
+- Tipo de importación: depósito fiscal vs importación definitiva
+- Catálogo de fracciones arancelarias
+- Nota: Veritrade limita la búsqueda externa a 10 artículos por consulta
+
+**Mejoras de datos**
+- [x] `costo_unit_ponderado` en `/reportes/paises-origen` y `/reportes/tipo-importacion` (ya se calcula en `ranking`, solo falta exponerlo en el schema)
+- [x] `pct_acumulado` (Pareto) en rankings de importadores, proveedores, países, tipo y partidas
+- [x] `GET /reportes/proveedores-por-pais` (dimensión `exportador × país_origen`)
+- [x] `GET /reportes/tipo-importacion?solo_principales=true` (colapsa a Depósito fiscal e Importación definitiva)
+
+**Capa de consulta (glosario + reglas)**
+- [x] `app/data/preguntas.json` — glosario (fuente de verdad): `{id, categoria, pregunta, endpoint, params, palabras_clave, descripcion}`
+- [x] `GET /preguntas` — glosario agrupado por categoría (`?categoria=`) para los "chips" del frontend
+- [x] `POST /consulta` `{pregunta, params?}` — normaliza, puntúa por `palabras_clave`, ejecuta el endpoint y devuelve **resumen determinista + datos**; si no hay match, responde `sin_coincidencia` con las preguntas disponibles
+- [x] `app/services/asistente.py` (`detectar`, `ejecutar`, plantillas de resumen) y `app/routers/asistente.py`
+- [x] Schemas `PreguntaOut`, `ConsultaIn`, `ConsultaOut`
+
+Ejemplo de resumen (ranking):
+> Top 10 de importadores: **MAYA SEA FOODS** lidera con 33.1M USD (9.2%). El top 10 concentra el 62.4% del valor analizado.
+
+Preparado para IA futura: el dispatcher de ejecución se reutiliza para enchufar un
+LLM (tool-calling) cuando exista API key, sin reescribir la capa de datos.
+
+**Tests:** `tests/bruno/asistente/` + ampliación de reportes (`pct_acumulado`, `solo_principales`).
+
 ---
 
 ## Contrato de endpoint (ejemplo)

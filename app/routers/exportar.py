@@ -44,7 +44,11 @@ def exportar_proveedores(
     orden: Orden = Depends(get_orden),
 ) -> Response:
     stmt = consultas.ranking(
-        consultas.DIM_PROVEEDOR, filtros, orden.order_by, orden.desc
+        consultas.DIM_PROVEEDOR,
+        filtros,
+        orden.order_by,
+        orden.desc,
+        extra_where=consultas.SOLO_EXPORTADOR,
     )
     rows = db.execute(stmt).mappings().all()
     return _respuesta(rows, formato, "proveedores")

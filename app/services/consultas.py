@@ -1,6 +1,6 @@
 from typing import Mapping
 
-from sqlalchemy import Select, distinct, func, select
+from sqlalchemy import Select, case, distinct, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.dependencies import Filtros
@@ -8,6 +8,10 @@ from app.models import Importacion
 
 DIM_IMPORTADOR = [Importacion.importador.label("importador")]
 DIM_PROVEEDOR = [Importacion.exportador.label("exportador")]
+DIM_PROVEEDOR_PAIS = [
+    Importacion.exportador.label("exportador"),
+    Importacion.pais_origen.label("pais_origen"),
+]
 DIM_PAIS = [Importacion.pais_origen.label("pais_origen")]
 DIM_TIPO = [Importacion.tipo_importacion.label("tipo_importacion")]
 DIM_PARTIDA = [
@@ -15,6 +19,27 @@ DIM_PARTIDA = [
     Importacion.descripcion_partida.label("descripcion_partida"),
 ]
 DIM_MES = [Importacion.mes.label("mes")]
+
+TIPO_PRINCIPAL_WHERE = or_(
+    Importacion.tipo_importacion.ilike("%DEPOSITO FISCAL%"),
+    Importacion.tipo_importacion.ilike("%IMPORTACION DEFINITIVA%"),
+)
+
+SOLO_EXPORTADOR = Importacion.exportador.is_not(None)
+
+
+def tipo_principales_expr():
+    return case(
+        (
+            Importacion.tipo_importacion.ilike("%DEPOSITO FISCAL%"),
+            "Depósito fiscal",
+        ),
+        (
+            Importacion.tipo_importacion.ilike("%IMPORTACION DEFINITIVA%"),
+            "Importación definitiva",
+        ),
+        else_="Otros",
+    ).label("tipo_importacion")
 
 
 def aplicar_filtros(stmt: Select, filtros: Filtros) -> Select:
@@ -44,6 +69,17 @@ def ranking(
 ) -> Select:
     valor = func.sum(Importacion.valor_total_usd)
     kg = func.sum(Importacion.qty1)
+    total = func.sum(valor).over()
+
+    orden_col = {
+        "valor_usd": valor,
+        "volumen_kg": kg,
+        "mes": Importacion.mes,
+    }.get(order_by, valor)
+    orden = orden_col.desc() if desc else orden_col.asc()
+    acumulado = func.sum(valor).over(
+        order_by=orden, rows=(None, 0)
+    )
 
     stmt = select(
         *dimension,
@@ -51,20 +87,32 @@ def ranking(
         kg.label("volumen_kg"),
         func.count().label("registros"),
         (valor / func.nullif(kg, 0)).label("costo_unit_ponderado"),
-        (valor * 100.0 / func.nullif(func.sum(valor).over(), 0)).label("pct_total"),
+        (valor * 100.0 / func.nullif(total, 0)).label("pct_total"),
+        (acumulado * 100.0 / func.nullif(total, 0)).label("pct_acumulado"),
     ).group_by(*dimension)
 
     stmt = aplicar_filtros(stmt, filtros)
     if extra_where is not None:
         stmt = stmt.where(extra_where)
 
-    orden_col = {
-        "valor_usd": valor,
-        "volumen_kg": kg,
-        "mes": Importacion.mes,
-    }.get(order_by, valor)
+    return stmt.order_by(orden)
 
-    return stmt.order_by(orden_col.desc() if desc else orden_col.asc())
+
+def tipo_importacion_ranking(
+    filtros: Filtros,
+    order_by: str = "valor_usd",
+    desc: bool = True,
+    solo_principales: bool = False,
+) -> Select:
+    if solo_principales:
+        return ranking(
+            [tipo_principales_expr()],
+            filtros,
+            order_by=order_by,
+            desc=desc,
+            extra_where=TIPO_PRINCIPAL_WHERE,
+        )
+    return ranking(DIM_TIPO, filtros, order_by=order_by, desc=desc)
 
 
 def kpis(db: Session, filtros: Filtros) -> Mapping:

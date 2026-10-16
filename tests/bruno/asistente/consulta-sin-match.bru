@@ -1,0 +1,33 @@
+meta {
+  name: Consulta sin coincidencia
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "cual es la capital de Francia"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("no encuentra coincidencia", function() {
+    expect(res.getBody().encontrada).to.equal(false);
+  });
+
+  test("devuelve sugerencias", function() {
+    const sugerencias = res.getBody().sugerencias;
+    expect(sugerencias).to.be.an("array");
+    expect(sugerencias.length).to.be.above(0);
+  });
+}

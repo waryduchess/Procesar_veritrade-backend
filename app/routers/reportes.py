@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -18,6 +18,7 @@ from app.schemas import (
     Page,
     PaisOrigenRow,
     PartidaRow,
+    ProveedorPaisRow,
     ProveedorRow,
     TipoImportacionRow,
 )
@@ -65,9 +66,30 @@ def reporte_proveedores(
     orden: Orden = Depends(get_orden),
 ) -> dict:
     stmt = consultas.ranking(
-        consultas.DIM_PROVEEDOR, filtros, orden.order_by, orden.desc
+        consultas.DIM_PROVEEDOR_PAIS,
+        filtros,
+        orden.order_by,
+        orden.desc,
+        extra_where=consultas.SOLO_EXPORTADOR,
     )
     return construir_page(db, stmt, ProveedorRow, pag.page, pag.page_size)
+
+
+@router.get("/proveedores-por-pais", response_model=Page[ProveedorPaisRow])
+def reporte_proveedores_por_pais(
+    db: Session = Depends(get_db),
+    filtros: Filtros = Depends(get_filtros),
+    pag: Paginacion = Depends(get_paginacion),
+    orden: Orden = Depends(get_orden),
+) -> dict:
+    stmt = consultas.ranking(
+        consultas.DIM_PROVEEDOR_PAIS,
+        filtros,
+        orden.order_by,
+        orden.desc,
+        extra_where=consultas.SOLO_EXPORTADOR,
+    )
+    return construir_page(db, stmt, ProveedorPaisRow, pag.page, pag.page_size)
 
 
 @router.get("/paises-origen", response_model=Page[PaisOrigenRow])
@@ -87,8 +109,13 @@ def reporte_tipo_importacion(
     filtros: Filtros = Depends(get_filtros),
     pag: Paginacion = Depends(get_paginacion),
     orden: Orden = Depends(get_orden),
+    solo_principales: bool = Query(
+        False, description="Agrupa en Depósito fiscal e Importación definitiva"
+    ),
 ) -> dict:
-    stmt = consultas.ranking(consultas.DIM_TIPO, filtros, orden.order_by, orden.desc)
+    stmt = consultas.tipo_importacion_ranking(
+        filtros, orden.order_by, orden.desc, solo_principales=solo_principales
+    )
     return construir_page(db, stmt, TipoImportacionRow, pag.page, pag.page_size)
 
 

@@ -1,0 +1,33 @@
+meta {
+  name: Proveedores por país
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/reportes/proveedores-por-pais?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody().items).to.be.an("array");
+  });
+
+  test("respeta top", function() {
+    expect(res.getBody().items.length).to.be.at.most(5);
+  });
+
+  test("cada item trae proveedor, país y acumulado", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("exportador");
+    expect(item).to.have.property("pais_origen");
+    expect(item).to.have.property("valor_usd");
+    expect(item).to.have.property("pct_acumulado");
+  });
+}

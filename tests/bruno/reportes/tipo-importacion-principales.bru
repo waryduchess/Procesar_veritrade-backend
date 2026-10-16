@@ -1,0 +1,27 @@
+meta {
+  name: Tipo importación (principales)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/reportes/tipo-importacion?solo_principales=true
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("agrupa en dos categorías", function() {
+    expect(res.getBody().items.length).to.equal(2);
+  });
+
+  test("solo depósito fiscal e importación definitiva", function() {
+    const nombres = res.getBody().items.map((i) => i.tipo_importacion);
+    expect(nombres).to.include("Depósito fiscal");
+    expect(nombres).to.include("Importación definitiva");
+  });
+}

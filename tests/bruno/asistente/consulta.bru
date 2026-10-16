@@ -1,0 +1,36 @@
+meta {
+  name: Consulta
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "cuales son los principales importadores"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("encuentra una pregunta del glosario", function() {
+    const body = res.getBody();
+    expect(body.encontrada).to.equal(true);
+    expect(body.id).to.equal("importadores_valor");
+  });
+
+  test("devuelve resumen y datos", function() {
+    const body = res.getBody();
+    expect(body.resumen).to.be.a("string");
+    expect(body.resumen.length).to.be.above(0);
+    expect(body.datos).to.have.property("items");
+  });
+}

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 
@@ -19,6 +19,7 @@ class ImportadorRow(ORMModel):
     registros: int = 0
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
+    pct_acumulado: float | None = None
 
 
 class ProveedorRow(ORMModel):
@@ -28,6 +29,18 @@ class ProveedorRow(ORMModel):
     registros: int = 0
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
+    pct_acumulado: float | None = None
+
+
+class ProveedorPaisRow(ORMModel):
+    exportador: str | None = None
+    pais_origen: str | None = None
+    valor_usd: float | None = None
+    volumen_kg: float | None = None
+    registros: int = 0
+    costo_unit_ponderado: float | None = None
+    pct_total: float | None = None
+    pct_acumulado: float | None = None
 
 
 class PaisOrigenRow(ORMModel):
@@ -35,7 +48,9 @@ class PaisOrigenRow(ORMModel):
     valor_usd: float | None = None
     volumen_kg: float | None = None
     registros: int = 0
+    costo_unit_ponderado: float | None = None
     pct_total: float | None = None
+    pct_acumulado: float | None = None
 
 
 class TipoImportacionRow(ORMModel):
@@ -43,7 +58,9 @@ class TipoImportacionRow(ORMModel):
     valor_usd: float | None = None
     volumen_kg: float | None = None
     registros: int = 0
+    costo_unit_ponderado: float | None = None
     pct_total: float | None = None
+    pct_acumulado: float | None = None
 
 
 class PartidaRow(ORMModel):
@@ -54,6 +71,7 @@ class PartidaRow(ORMModel):
     registros: int = 0
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
+    pct_acumulado: float | None = None
 
 
 class MensualRow(ORMModel):
@@ -136,3 +154,29 @@ class JobOut(ORMModel):
     detalle: dict | None = None
     creado_en: datetime
     terminado_en: datetime | None = None
+
+
+class PreguntaOut(ORMModel):
+    id: str
+    categoria: str
+    pregunta: str
+    endpoint: str
+    params: dict = Field(default_factory=dict)
+    descripcion: str | None = None
+
+
+class ConsultaIn(BaseModel):
+    pregunta: str
+    params: dict | None = None
+
+
+class ConsultaOut(BaseModel):
+    encontrada: bool
+    pregunta: str | None = None
+    id: str | None = None
+    categoria: str | None = None
+    endpoint: str | None = None
+    params: dict | None = None
+    resumen: str
+    datos: Any | None = None
+    sugerencias: list[str] | None = None

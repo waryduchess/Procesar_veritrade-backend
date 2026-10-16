@@ -1,0 +1,31 @@
+meta {
+  name: Preguntas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/preguntas
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve lista no vacía", function() {
+    const body = res.getBody();
+    expect(body).to.be.an("array");
+    expect(body.length).to.be.above(0);
+  });
+
+  test("cada pregunta tiene id, categoría y endpoint", function() {
+    const item = res.getBody()[0];
+    expect(item).to.have.property("id");
+    expect(item).to.have.property("categoria");
+    expect(item).to.have.property("pregunta");
+    expect(item).to.have.property("endpoint");
+  });
+}

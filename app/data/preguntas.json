@@ -1,0 +1,138 @@
+[
+  {
+    "id": "importadores_cancun",
+    "categoria": "Importadores",
+    "pregunta": "¿Quiénes son los principales importadores en Cancún?",
+    "endpoint": "/reportes/importadores-cancun",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["cancun", "quintana roo", "peninsula", "importadores", "importan"],
+    "descripcion": "Ranking de importadores con operaciones en Cancún"
+  },
+  {
+    "id": "importadores_valor",
+    "categoria": "Importadores",
+    "pregunta": "¿Quiénes son los principales importadores en México?",
+    "endpoint": "/reportes/importadores",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["importadores", "importador", "principales", "mexico", "ranking", "quienes importan"],
+    "descripcion": "Ranking de importadores por valor USD"
+  },
+  {
+    "id": "importadores_volumen",
+    "categoria": "Importadores",
+    "pregunta": "¿Qué importadores manejan el mayor volumen (kg)?",
+    "endpoint": "/reportes/importadores",
+    "params": { "top": 10, "order_by": "volumen_kg" },
+    "palabras_clave": ["importadores", "volumen", "volumen kg", "kilos", "kg", "peso", "mayor volumen"],
+    "descripcion": "Ranking de importadores por volumen en kg"
+  },
+  {
+    "id": "costo_importadores",
+    "categoria": "Costos",
+    "pregunta": "¿Cuál es el costo unitario (USD/kg) por importador?",
+    "endpoint": "/reportes/importadores",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["costo unitario", "costo", "costos", "precio", "usd por kg", "importador"],
+    "descripcion": "Costo unitario ponderado por importador"
+  },
+  {
+    "id": "costo_partidas",
+    "categoria": "Costos",
+    "pregunta": "¿Cuál es el costo unitario por fracción arancelaria?",
+    "endpoint": "/reportes/partidas",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["costo unitario", "costo", "costos", "precio", "fraccion", "fracciones", "arancelaria"],
+    "descripcion": "Costo unitario ponderado por partida arancelaria"
+  },
+  {
+    "id": "proveedores_pais",
+    "categoria": "Proveedores",
+    "pregunta": "¿Cómo se distribuyen los proveedores por país de origen?",
+    "endpoint": "/reportes/proveedores-por-pais",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["proveedores", "proveedor", "por pais", "pais de origen", "distribucion", "origen"],
+    "descripcion": "Proveedores agrupados por país de origen"
+  },
+  {
+    "id": "proveedores_valor",
+    "categoria": "Proveedores",
+    "pregunta": "¿Quiénes son los principales proveedores (exportadores)?",
+    "endpoint": "/reportes/proveedores",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["proveedores", "proveedor", "exportadores", "exportador", "principales"],
+    "descripcion": "Ranking de proveedores por valor USD"
+  },
+  {
+    "id": "paises_origen",
+    "categoria": "Países de origen",
+    "pregunta": "¿Cuáles son los principales países de origen?",
+    "endpoint": "/reportes/paises-origen",
+    "params": { "top": 10, "order_by": "valor_usd" },
+    "palabras_clave": ["paises", "pais", "origen", "procedencia", "de donde vienen"],
+    "descripcion": "Ranking de países de origen por valor USD"
+  },
+  {
+    "id": "tipo_importacion",
+    "categoria": "Tipo de importación",
+    "pregunta": "¿Cuánto corresponde a depósito fiscal y a importación definitiva?",
+    "endpoint": "/reportes/tipo-importacion",
+    "params": { "solo_principales": true },
+    "palabras_clave": ["tipo de importacion", "tipo", "deposito fiscal", "importacion definitiva", "regimen"],
+    "descripcion": "Valor por tipo de importación (agrupado)"
+  },
+  {
+    "id": "kpis",
+    "categoria": "Totales",
+    "pregunta": "¿Cuál es el valor y volumen total importado?",
+    "endpoint": "/reportes/kpis",
+    "params": {},
+    "palabras_clave": ["total", "valor total", "volumen total", "resumen", "kpis", "general", "global"],
+    "descripcion": "Indicadores globales del dataset"
+  },
+  {
+    "id": "mensual",
+    "categoria": "Totales",
+    "pregunta": "¿Cómo evolucionan las importaciones mes a mes?",
+    "endpoint": "/reportes/mensual",
+    "params": {},
+    "palabras_clave": ["mensual", "mes a mes", "evolucion", "tendencia", "meses", "serie", "tiempo"],
+    "descripcion": "Serie mensual de valor y volumen"
+  },
+  {
+    "id": "catalogo_partidas",
+    "categoria": "Catálogos",
+    "pregunta": "¿Qué fracciones arancelarias existen en el catálogo?",
+    "endpoint": "/meta/partidas",
+    "params": {},
+    "palabras_clave": ["catalogo", "fracciones", "arancelarias", "partidas", "articulos", "descripcion partida"],
+    "descripcion": "Catálogo de fracciones arancelarias"
+  },
+  {
+    "id": "catalogo_paises",
+    "categoria": "Catálogos",
+    "pregunta": "¿Qué países están registrados?",
+    "endpoint": "/meta/paises",
+    "params": {},
+    "palabras_clave": ["catalogo de paises", "lista de paises", "paises registrados", "registrados", "catalogo"],
+    "descripcion": "Catálogo de países de origen"
+  },
+  {
+    "id": "catalogo_aduanas",
+    "categoria": "Catálogos",
+    "pregunta": "¿Qué aduanas están registradas?",
+    "endpoint": "/meta/aduanas",
+    "params": {},
+    "palabras_clave": ["aduanas", "aduana", "catalogo de aduanas"],
+    "descripcion": "Catálogo de aduanas"
+  },
+  {
+    "id": "buscar_operaciones",
+    "categoria": "Búsqueda",
+    "pregunta": "¿Cómo busco operaciones por descripción comercial?",
+    "endpoint": "/importaciones/buscar",
+    "params": { "q": "" },
+    "palabras_clave": ["buscar", "busqueda", "descripcion comercial", "producto", "operacion"],
+    "descripcion": "Busca operaciones por texto en la descripción comercial",
+    "requiere": ["q"]
+  }
+]

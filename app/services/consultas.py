@@ -70,6 +70,7 @@ def ranking(
     valor = func.sum(Importacion.valor_total_usd)
     kg = func.sum(Importacion.qty1)
     total = func.sum(valor).over()
+    total_kg = func.sum(kg).over()
 
     orden_col = {
         "valor_usd": valor,
@@ -77,9 +78,7 @@ def ranking(
         "mes": Importacion.mes,
     }.get(order_by, valor)
     orden = orden_col.desc() if desc else orden_col.asc()
-    acumulado = func.sum(valor).over(
-        order_by=orden, rows=(None, 0)
-    )
+    acumulado = func.sum(valor).over(order_by=orden, rows=(None, 0))
 
     stmt = select(
         *dimension,
@@ -89,6 +88,7 @@ def ranking(
         (valor / func.nullif(kg, 0)).label("costo_unit_ponderado"),
         (valor * 100.0 / func.nullif(total, 0)).label("pct_total"),
         (acumulado * 100.0 / func.nullif(total, 0)).label("pct_acumulado"),
+        (kg * 100.0 / func.nullif(total_kg, 0)).label("porcentaje"),
     ).group_by(*dimension)
 
     stmt = aplicar_filtros(stmt, filtros)

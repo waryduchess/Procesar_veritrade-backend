@@ -27,6 +27,16 @@
     "descripcion": "Ranking de importadores por volumen en kg"
   },
   {
+    "id": "peso_por_producto",
+    "categoria": "Productos",
+    "pregunta": "¿Qué porcentaje de peso importa cada importador de un producto (fracción)?",
+    "endpoint": "/reportes/importadores",
+    "params": { "top": 10, "order_by": "volumen_kg" },
+    "palabras_clave": ["porcentaje de peso", "peso por producto", "porcentaje por producto", "porcentaje", "peso del producto", "participacion"],
+    "descripcion": "Peso de cada importador y su % sobre el total de ese producto",
+    "requiere": ["partida"]
+  },
+  {
     "id": "costo_importadores",
     "categoria": "Costos",
     "pregunta": "¿Cuál es el costo unitario (USD/kg) por importador?",

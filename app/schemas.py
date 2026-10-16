@@ -20,6 +20,7 @@ class ImportadorRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class ProveedorRow(ORMModel):
@@ -30,6 +31,7 @@ class ProveedorRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class ProveedorPaisRow(ORMModel):
@@ -41,6 +43,7 @@ class ProveedorPaisRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class PaisOrigenRow(ORMModel):
@@ -51,6 +54,7 @@ class PaisOrigenRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class TipoImportacionRow(ORMModel):
@@ -61,6 +65,7 @@ class TipoImportacionRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class PartidaRow(ORMModel):
@@ -72,6 +77,7 @@ class PartidaRow(ORMModel):
     costo_unit_ponderado: float | None = None
     pct_total: float | None = None
     pct_acumulado: float | None = None
+    porcentaje: float | None = None
 
 
 class MensualRow(ORMModel):

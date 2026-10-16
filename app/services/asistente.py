@@ -34,6 +34,7 @@ _METRICAS = {
     "costo_unit_ponderado",
     "pct_total",
     "pct_acumulado",
+    "porcentaje",
 }
 
 _RANKINGS = {
@@ -268,17 +269,20 @@ def _resumen_ranking(pregunta: dict, datos: dict, order_by: str = "valor_usd") -
     primero = items[0]
     if order_by == "volumen_kg":
         metrica = f"{_fmt_usd(primero.get('volumen_kg'))} kg"
-        pct = None
+        pct = primero.get("porcentaje")
+        etiqueta = "del volumen"
+        acumulado = None
     else:
         metrica = f"{_fmt_usd(primero.get('valor_usd'))} USD"
         pct = primero.get("pct_total")
+        etiqueta = "del valor"
+        acumulado = items[-1].get("pct_acumulado")
     resumen = f"{pregunta['categoria']}: {_dim_legible(primero)} lidera con {metrica}"
     if pct is not None:
-        resumen += f" ({pct:.1f}% del total)"
+        resumen += f" ({pct:.1f}% {etiqueta})"
     resumen += f". Mostrando {len(items)} de {datos['total']}."
-    acumulado = items[-1].get("pct_acumulado")
     if acumulado is not None:
-        resumen += f" Este top concentra el {acumulado:.1f}% del valor."
+        resumen += f" Este top concentra el {acumulado:.1f}% {etiqueta}."
     return resumen
 
 

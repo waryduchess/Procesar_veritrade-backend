@@ -1,0 +1,37 @@
+meta {
+  name: Peso por producto
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/reportes/importadores?partida=304610100&order_by=volumen_kg&top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items ordenados por volumen", function() {
+    const items = res.getBody().items;
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.above(0);
+  });
+
+  test("cada item trae % de peso del producto", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("volumen_kg");
+    expect(item).to.have.property("porcentaje");
+    expect(item.porcentaje).to.be.above(0);
+  });
+
+  test("el % de peso suma a lo más 100", function() {
+    const total = res.getBody().items.reduce(function(acc, i) {
+      return acc + i.porcentaje;
+    }, 0);
+    expect(total).to.be.at.most(100.001);
+  });
+}

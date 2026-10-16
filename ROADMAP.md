@@ -180,6 +180,7 @@ determinista por palabras clave.
 **Mejoras de datos**
 - [x] `costo_unit_ponderado` en `/reportes/paises-origen` y `/reportes/tipo-importacion` (ya se calcula en `ranking`, solo falta exponerlo en el schema)
 - [x] `pct_acumulado` (Pareto) en rankings de importadores, proveedores, países, tipo y partidas
+- [x] `porcentaje` (porcentaje que representa cada fila sobre el total del conjunto filtrado; sin acumulado). Con el filtro `partida` da el % de peso de cada importador/proveedor/país sobre el total de ese producto
 - [x] `GET /reportes/proveedores-por-pais` (dimensión `exportador × país_origen`)
 - [x] `GET /reportes/tipo-importacion?solo_principales=true` (colapsa a Depósito fiscal e Importación definitiva)
 

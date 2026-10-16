@@ -91,6 +91,16 @@ Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `a
 `GET /reportes/tipo-importacion` acepta `solo_principales=true` para agrupar en
 Depósito fiscal e Importación definitiva.
 
+Los rankings incluyen `pct_total`/`pct_acumulado` (valor USD) y `porcentaje`
+(peso kg). El porcentaje se calcula sobre el total del conjunto filtrado, así que
+filtrando por `partida` obtienes el peso de cada actor sobre el total importado de
+ese producto:
+
+```bash
+# % de peso de cada importador sobre el total del producto 304610100
+curl "localhost:8000/reportes/importadores?partida=304610100&order_by=volumen_kg&top=10"
+```
+
 ### Capa de consulta (sin IA)
 
 `POST /consulta` recibe `{"pregunta": "...", "params": {...}}`, mapea el texto a una

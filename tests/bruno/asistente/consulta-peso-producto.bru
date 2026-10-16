@@ -1,0 +1,37 @@
+meta {
+  name: Consulta peso por producto
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "porcentaje de peso por producto",
+    "params": { "partida": "304610100" }
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("detecta la pregunta de peso por producto", function() {
+    const body = res.getBody();
+    expect(body.encontrada).to.equal(true);
+    expect(body.id).to.equal("peso_por_producto");
+  });
+
+  test("resumen menciona el volumen y devuelve datos", function() {
+    const body = res.getBody();
+    expect(body.resumen).to.be.a("string");
+    expect(body.resumen).to.match(/volumen/);
+    expect(body.datos).to.have.property("items");
+  });
+}

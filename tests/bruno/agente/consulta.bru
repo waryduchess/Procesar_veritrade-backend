@@ -1,0 +1,39 @@
+meta {
+  name: Agente consulta
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "¿Cuál es el valor y volumen total importado?"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("responde usando herramientas", function() {
+    const body = res.getBody();
+    expect(body.respuesta).to.be.a("string");
+    expect(body.respuesta.length).to.be.above(0);
+    expect(body.tool_calls).to.be.an("array");
+    expect(body.tool_calls.length).to.be.above(0);
+    expect(body.datos_usados.length).to.be.above(0);
+  });
+
+  test("no devuelve errores de herramienta", function() {
+    const body = res.getBody();
+    body.datos_usados.forEach(function(d) {
+      expect(d.resultado).to.not.have.property("error");
+    });
+  });
+}

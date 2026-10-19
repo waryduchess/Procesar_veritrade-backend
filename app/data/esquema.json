@@ -1,0 +1,53 @@
+{
+  "tabla": "importaciones",
+  "descripcion": "Registro de operaciones de importación a México (Veritrade). Cada fila es una operación/movimiento aduanal.",
+  "unidades": {
+    "qty1": "kilogramos (KG) en el 100% de las filas",
+    "valor_total_usd": "dólares estadounidenses (USD)"
+  },
+  "columnas": {
+    "fecha": "fecha de la operación (YYYY-MM-DD)",
+    "importador": "empresa que importa",
+    "exportador": "empresa proveedora / que exporta",
+    "pais_origen": "país de origen de la mercancía",
+    "pais_compra": "país donde se realizó la compra",
+    "aduana": "aduana de entrada",
+    "partida_arancelaria": "fracción arancelaria (producto)",
+    "descripcion_partida": "descripción del producto",
+    "descripcion_comercial": "descripción comercial de la mercancía",
+    "qty1": "cantidad/peso en KG",
+    "und1": "unidad de qty1 (siempre KG)",
+    "valor_total_usd": "valor total de la operación en USD",
+    "tipo_importacion": "Depósito fiscal, Importación definitiva, Extracción depósito fiscal, Reexpedición, etc.",
+    "regimen": "régimen aduanal",
+    "es_cancun": "1 si la operación es en Cancún, 0 si no",
+    "anio": "año de la operación",
+    "mes": "mes de la operación (YYYY-MM)",
+    "costo_unitario_kg": "costo por kilogramo de la operación"
+  },
+  "metricas": {
+    "valor_usd": "suma de valor_total_usd",
+    "volumen_kg": "suma de qty1 (KG)",
+    "registros": "número de operaciones",
+    "costo_unit_ponderado": "valor_usd / volumen_kg (USD por KG)",
+    "pct_total": "porcentaje del VALOR (USD) sobre el total del conjunto filtrado",
+    "pct_acumulado": "porcentaje de valor acumulado (Pareto) en el orden mostrado",
+    "porcentaje": "porcentaje del VOLUMEN (KG) sobre el total del conjunto filtrado"
+  },
+  "filtros": {
+    "fecha_desde": "YYYY-MM-DD",
+    "fecha_hasta": "YYYY-MM-DD",
+    "aduana": "texto (contiene)",
+    "pais_origen": "texto (contiene)",
+    "partida": "fracción arancelaria (contiene). Con esto el porcentaje se calcula sobre el total de ese producto",
+    "importador": "texto (contiene)",
+    "exportador": "texto (contiene)",
+    "order_by": "valor_usd | volumen_kg",
+    "top": "número de filas (máximo 50)"
+  },
+  "notas": [
+    "El DENOMINADOR de pct_total, pct_acumulado y porcentaje es el total del conjunto filtrado.",
+    "Si se filtra por partida (producto), 'porcentaje' es el peso de cada importador/proveedor/país sobre el total importado de ESE producto.",
+    "No hay datos fuera de esta tabla. Si una pregunta no se puede responder con estas columnas/consultas, se debe indicar que no se tiene el dato."
+  ]
+}

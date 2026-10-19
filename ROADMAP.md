@@ -199,6 +199,22 @@ LLM (tool-calling) cuando exista API key, sin reescribir la capa de datos.
 
 **Tests:** `tests/bruno/asistente/` + ampliación de reportes (`pct_acumulado`, `solo_principales`).
 
+### Fase 9 — Agente LLM con tools (Groq)
+
+Completada (`app/services/agente.py`, `app/services/tools.py`, `app/services/llm.py`,
+`app/routers/agente.py`, `app/data/esquema.json`). Se mantiene `POST /consulta`
+(reglas) separado como capa determinista.
+
+- [x] `POST /agente/consulta` `{pregunta}` — stateless, sin streaming
+- [x] 5 tools sobre `consultas.py`: `resumen_kpis`, `ranking(dimension)`, `serie_mensual`, `buscar_operaciones`, `catalogo`
+- [x] `ranking` unifica importadores, importadores_cancun, proveedores, proveedores_por_pais, paises_origen, partidas y tipo_importacion
+- [x] Grounding: sin tool-call → `No tengo ese dato en la base de datos.`; `datos_usados` para auditoría
+- [x] Diccionario de datos (`app/data/esquema.json`) inyectado al system prompt
+- [x] Manejo de `429`/`413` del tier gratuito (8000 TPM) con respuesta clara
+- [x] Schemas `AgenteIn`, `ToolCallOut`, `AgenteOut`; `groq` en `requirements.txt`
+
+**Tests:** `tests/bruno/agente/` (consulta con tools y fuera de tema).
+
 ---
 
 ## Contrato de endpoint (ejemplo)

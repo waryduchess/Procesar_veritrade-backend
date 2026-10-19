@@ -8,6 +8,14 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: str = ""
 
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
+    agente_max_tool_calls: int = 4
+    agente_max_tokens: int = 700
+    agente_timeout: float = 30.0
+    agente_top_default: int = 10
+    agente_top_max: int = 50
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

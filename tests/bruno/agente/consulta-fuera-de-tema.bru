@@ -1,0 +1,31 @@
+meta {
+  name: Agente fuera de tema
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "¿Cuál es la capital de Francia?"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("no inventa: responde sin dato y sin herramientas", function() {
+    const body = res.getBody();
+    expect(body.respuesta).to.equal("No tengo ese dato en la base de datos.");
+    expect(body.tool_calls).to.be.an("array");
+    expect(body.tool_calls.length).to.equal(0);
+    expect(body.datos_usados.length).to.equal(0);
+  });
+}

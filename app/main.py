@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import (
+    agente,
     asistente,
     exportar,
     health,
@@ -29,3 +30,4 @@ app.include_router(meta.router)
 app.include_router(exportar.router)
 app.include_router(procesamiento.router)
 app.include_router(asistente.router)
+app.include_router(agente.router)

@@ -186,3 +186,18 @@ class ConsultaOut(BaseModel):
     resumen: str
     datos: Any | None = None
     sugerencias: list[str] | None = None
+
+
+class AgenteIn(BaseModel):
+    pregunta: str = Field(min_length=1, max_length=2000)
+
+
+class ToolCallOut(BaseModel):
+    name: str
+    args: dict = Field(default_factory=dict)
+
+
+class AgenteOut(BaseModel):
+    respuesta: str
+    tool_calls: list[ToolCallOut]
+    datos_usados: list[Any]

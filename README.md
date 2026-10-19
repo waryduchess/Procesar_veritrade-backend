@@ -29,9 +29,11 @@ python3 -m venv .venv
 El archivo `.env` está en `.gitignore`, así que créalo manualmente en la raíz:
 
 ```env
-MYSQL_URL=mysql+pymysql://veritrade:veritrade123@localhost:3306/veritrade?charset=utf8mb4
+MYSQL_URL=mysql+pymysql://veritrade:veritrade123@localhost:3307/veritrade?charset=utf8mb4
 API_PORT=8000
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+GROQ_API_KEY=tu_api_key_de_groq
+# opcional: GROQ_MODEL=openai/gpt-oss-120b
 ```
 
 ### 3. Levantar MySQL
@@ -42,6 +44,9 @@ docker compose up -d
 
 Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `database/schema.sql`
 (tabla `importaciones` + vistas `v_*`) en el primer arranque.
+
+> MySQL se expone en el puerto **3307** para no chocar con otros proyectos que usen 3306.
+> Si cambias el puerto en `docker-compose.yml`, ajusta `MYSQL_URL` en `.env`.
 
 ### 4. Correr la API
 
@@ -81,7 +86,8 @@ npx -y @usebruno/cli run --env local
 - `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
 - `GET /meta/{aduanas,paises,partidas}`
 - `GET /exportar/{importadores,proveedores,importaciones}?formato=xlsx|csv`
-- `GET /preguntas` (`?categoria=`) y `POST /consulta` — glosario de preguntas precargadas
+- `GET /preguntas` (`?categoria=`) y `POST /consulta` — glosario de preguntas precargadas (reglas, sin IA)
+- `POST /agente/consulta` — agente LLM + tools (Groq) que responde solo con datos de la BD
 - `POST /procesamiento/upload`, `POST /procesamiento/cargar`, `GET /procesamiento/status/{job_id}`, `GET /procesamiento/historial`
 
 Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `aduana`,
@@ -112,6 +118,28 @@ coincidencia responde `encontrada: false` con sugerencias. No usa LLM.
 curl -X POST localhost:8000/consulta -H 'Content-Type: application/json' \
   -d '{"pregunta":"cuales son los principales importadores"}'
 ```
+
+### Agente (LLM + tools)
+
+`POST /agente/consulta` recibe `{"pregunta": "..."}` y responde en lenguaje natural
+usando **solo** resultados de la base de datos. El modelo (`groq`, por defecto
+`openai/gpt-oss-120b`) elige entre 5 tools que ejecutan internamente
+`app/services/consultas.py`: `resumen_kpis`, `ranking(dimension=...)`,
+`serie_mensual`, `buscar_operaciones` y `catalogo`.
+
+- **Stateless**: cada pregunta es independiente (sin memoria de conversación).
+- **Sin SQL libre**: el modelo solo puede llamar tools acotadas.
+- **Anti-alucinación**: si no llama ninguna tool, responde
+  `No tengo ese dato en la base de datos.` y no inventa.
+- Devuelve `respuesta`, `tool_calls` y `datos_usados` (auditoría de cada tool y su resultado).
+
+```bash
+curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
+  -d '{"pregunta":"¿Cuál es el valor y volumen total importado?"}'
+```
+
+> El tier gratuito de Groq limita a **8000 tokens/minuto**. Si se hacen muchas
+> preguntas seguidas, el endpoint responde `429` con un mensaje para reintentar.
 
 ## Estructura
 

@@ -60,6 +60,33 @@ class AgenteLimite(AgenteError):
     pass
 
 
+def _mensaje_limite(exc: Exception) -> str:
+    texto = str(exc)
+    if "per day" in texto or "(TPD)" in texto:
+        tipo = "diario"
+    elif "per minute" in texto or "(TPM)" in texto:
+        tipo = "por minuto"
+    else:
+        tipo = ""
+    mensaje = (
+        f"Límite de tokens {tipo} alcanzado para {settings.groq_model}."
+        if tipo
+        else f"Límite de tokens alcanzado para {settings.groq_model}."
+    )
+    headers = getattr(getattr(exc, "response", None), "headers", {}) or {}
+    retry = headers.get("retry-after")
+    if retry:
+        try:
+            segundos = int(float(retry))
+        except (TypeError, ValueError):
+            segundos = 0
+        if segundos >= 60:
+            mensaje += f" Reintenta en ~{segundos // 60} min."
+        elif segundos > 0:
+            mensaje += f" Reintenta en {segundos} s."
+    return mensaje
+
+
 @lru_cache(maxsize=1)
 def _esquema() -> str:
     return ESQUEMA_FILE.read_text(encoding="utf-8")
@@ -138,14 +165,15 @@ def consultar(db: Session, pregunta: str) -> dict:
                 max_tokens=settings.agente_max_tokens,
             )
         except RateLimitError as exc:
-            raise AgenteLimite(
-                "Límite de tokens del modelo alcanzado. Intenta de nuevo en unos segundos."
-            ) from exc
+            raise AgenteLimite(_mensaje_limite(exc)) from exc
         except APIStatusError as exc:
-            if exc.status_code in (413, 429):
+            if exc.status_code == 413:
                 raise AgenteLimite(
-                    "Límite de tokens del modelo alcanzado. Intenta de nuevo en unos segundos."
+                    "La consulta es demasiado grande para el modelo "
+                    f"{settings.groq_model}. Intenta con una pregunta más breve."
                 ) from exc
+            if exc.status_code == 429:
+                raise AgenteLimite(_mensaje_limite(exc)) from exc
             raise AgenteError(f"Error al consultar el modelo: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
             raise AgenteError(f"Error al consultar el modelo: {exc}") from exc

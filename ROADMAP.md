@@ -211,7 +211,8 @@ Completada (`app/services/agente.py`, `app/services/tools.py`, `app/services/llm
 - [x] Grounding: sin tool-call → `No tengo ese dato en la base de datos.`; `datos_usados` para auditoría
 - [x] Saludos/agradecimientos: respuesta cordial sin tools (detección de saludo puro + regla 13 del prompt)
 - [x] Diccionario de datos (`app/data/esquema.json`) inyectado al system prompt
-- [x] Manejo de `429`/`413` del tier gratuito (8000 TPM) con respuesta clara
+- [x] Manejo de `429`/`413` del tier gratuito (8k TPM / 200k TPD por modelo) con mensaje que indica modelo, TPM/TPD y `retry-after`
+- [x] `GROQ_MODEL` configurable; `.env.example` recomienda `openai/gpt-oss-20b` para desarrollo
 - [x] Schemas `AgenteIn`, `ToolCallOut`, `AgenteOut`; `groq` en `requirements.txt`
 
 **Tests:** `tests/bruno/agente/` (consulta con tools y fuera de tema).

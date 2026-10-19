@@ -17,6 +17,7 @@ Backend para procesar datos de importaciones de Veritrade (México): pipeline de
 ```bash
 git clone <url-del-repo> Procesar_veritrade-backend
 cd Procesar_veritrade-backend
+cp .env.example .env   # luego pon tu GROQ_API_KEY
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
@@ -26,14 +27,14 @@ python3 -m venv .venv
 
 ### 2. Variables de entorno
 
-El archivo `.env` está en `.gitignore`, así que créalo manualmente en la raíz:
+El archivo `.env` está en `.gitignore`, así que créalo a partir de `.env.example`:
 
 ```env
 MYSQL_URL=mysql+pymysql://veritrade:veritrade123@localhost:3307/veritrade?charset=utf8mb4
 API_PORT=8000
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 GROQ_API_KEY=tu_api_key_de_groq
-# opcional: GROQ_MODEL=openai/gpt-oss-120b
+GROQ_MODEL=openai/gpt-oss-20b
 ```
 
 ### 3. Levantar MySQL
@@ -140,8 +141,14 @@ curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' 
   -d '{"pregunta":"¿Cuál es el valor y volumen total importado?"}'
 ```
 
-> El tier gratuito de Groq limita a **8000 tokens/minuto**. Si se hacen muchas
-> preguntas seguidas, el endpoint responde `429` con un mensaje para reintentar.
+> **Límites de Groq (plan gratis):** 8000 tokens/minuto (TPM) y 200.000
+> tokens/día (TPD) **por modelo**. El `openai/gpt-oss-120b` se agota rápido; para
+> desarrollo usa `GROQ_MODEL=openai/gpt-oss-20b`. Cada desarrollador debe usar su
+> propia `GROQ_API_KEY`. Si se agota la cuota, el endpoint responde `429` con el
+> modelo, el tipo de límite (TPM/TPD) y el tiempo de reintento.
+>
+> Los tests de `tests/bruno/agente/` hacen varias llamadas al LLM. Con el 120b
+> pueden fallar por TPM aunque el saludo funcione por separado; con el 20b pasan.
 
 ## Estructura
 

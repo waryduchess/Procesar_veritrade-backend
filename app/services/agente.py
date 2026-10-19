@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,6 +16,40 @@ from app.services.tools import TOOLS, TOOL_DEFINITIONS
 ESQUEMA_FILE = Path(__file__).resolve().parent.parent / "data" / "esquema.json"
 
 SIN_DATO = "No tengo ese dato en la base de datos."
+
+_SALUDOS = {
+    "hola",
+    "buen",
+    "buenos",
+    "buenas",
+    "dia",
+    "dias",
+    "tarde",
+    "tardes",
+    "noche",
+    "noches",
+    "hey",
+    "saludos",
+    "que",
+    "tal",
+    "como",
+    "estas",
+    "andas",
+    "gracias",
+}
+
+
+def _normalizar(texto: str) -> str:
+    base = unicodedata.normalize("NFKD", texto.lower())
+    limpio = "".join(c for c in base if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9\s]", " ", limpio).strip()
+
+
+def _es_saludo(texto: str) -> bool:
+    palabras = _normalizar(texto).split()
+    return bool(palabras) and len(palabras) <= 5 and all(
+        p in _SALUDOS for p in palabras
+    )
 
 
 class AgenteError(RuntimeError):
@@ -37,16 +73,18 @@ Tu única fuente de verdad es la base de datos, a la que accedes mediante herram
 REGLAS OBLIGATORIAS:
 1. Para responder cualquier pregunta sobre datos, primero llama a una o más herramientas. Nunca respondas de memoria.
 2. Solo puedes afirmar cifras, nombres y hechos que aparezcan en los resultados de las herramientas.
-3. Si las herramientas no cubren la pregunta, responde exactamente: "{SIN_DATO}" y no inventes nada.
+3. Si la pregunta requiere datos y las herramientas no los cubren, responde exactamente: "{SIN_DATO}" y no inventes nada.
 4. No inventes columnas, productos, empresas ni valores. No supongas datos que no estén en los resultados.
 5. Si piden algo fuera de importaciones (clima, política, opiniones, etc.), rechaza brevemente.
-6. Responde en español, claro y breve, incluyendo las cifras relevantes.
+6. Responde en español, claro y breve, sin emojis, incluyendo las cifras relevantes.
 7. Aclara unidades: el valor es USD y el volumen es KG.
 8. 'porcentaje' es % del VOLUMEN (KG); 'pct_total' es % del VALOR (USD); 'pct_acumulado' es valor acumulado (Pareto). El denominador es siempre el conjunto filtrado.
 9. Para rankings usa la herramienta "ranking" con la dimension adecuada; usa top para limitar filas.
 10. Si piden porcentaje/volumen/peso, ordena con order_by="volumen_kg"; si piden valor/monto/USD, usa "valor_usd".
 11. Cuando filtres por un producto, usa el parámetro 'partida' para que los porcentajes se calculen sobre el total de ese producto.
 12. El máximo de filas por ranking es 50. Si piden "todas" o "cada", usa top=50; si el campo total del resultado supera las filas devueltas, aclara que hay más.
+13. Si el usuario solo saluda o agradece, responde cordialmente en 1-2 líneas y ofrécele ayuda con datos de importaciones. En ese caso no llames herramientas.
+
 
 DICCIONARIO DE DATOS (JSON):
 {_esquema()}
@@ -116,7 +154,7 @@ def consultar(db: Session, pregunta: str) -> dict:
 
         if not msg.tool_calls:
             respuesta = (msg.content or "").strip()
-            if not llamadas:
+            if not llamadas and not _es_saludo(pregunta):
                 respuesta = SIN_DATO
             return {
                 "respuesta": respuesta or SIN_DATO,

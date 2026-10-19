@@ -1,0 +1,32 @@
+meta {
+  name: Agente saludo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Hola, ¿cómo estás?"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("responde el saludo sin inventar datos", function() {
+    const body = res.getBody();
+    expect(body.respuesta).to.be.a("string");
+    expect(body.respuesta.length).to.be.above(0);
+    expect(body.respuesta).to.not.equal("No tengo ese dato en la base de datos.");
+    expect(body.tool_calls).to.be.an("array");
+    expect(body.tool_calls.length).to.equal(0);
+  });
+}

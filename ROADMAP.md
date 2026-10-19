@@ -209,6 +209,7 @@ Completada (`app/services/agente.py`, `app/services/tools.py`, `app/services/llm
 - [x] 5 tools sobre `consultas.py`: `resumen_kpis`, `ranking(dimension)`, `serie_mensual`, `buscar_operaciones`, `catalogo`
 - [x] `ranking` unifica importadores, importadores_cancun, proveedores, proveedores_por_pais, paises_origen, partidas y tipo_importacion
 - [x] Grounding: sin tool-call → `No tengo ese dato en la base de datos.`; `datos_usados` para auditoría
+- [x] Saludos/agradecimientos: respuesta cordial sin tools (detección de saludo puro + regla 13 del prompt)
 - [x] Diccionario de datos (`app/data/esquema.json`) inyectado al system prompt
 - [x] Manejo de `429`/`413` del tier gratuito (8000 TPM) con respuesta clara
 - [x] Schemas `AgenteIn`, `ToolCallOut`, `AgenteOut`; `groq` en `requirements.txt`

@@ -131,6 +131,8 @@ usando **solo** resultados de la base de datos. El modelo (`groq`, por defecto
 - **Sin SQL libre**: el modelo solo puede llamar tools acotadas.
 - **Anti-alucinación**: si no llama ninguna tool, responde
   `No tengo ese dato en la base de datos.` y no inventa.
+- **Saludos/agradecimientos**: responde cordialmente en 1-2 líneas sin consultar
+  la BD (no llama tools).
 - Devuelve `respuesta`, `tool_calls` y `datos_usados` (auditoría de cada tool y su resultado).
 
 ```bash

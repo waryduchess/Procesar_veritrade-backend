@@ -66,7 +66,7 @@ def reporte_proveedores(
     orden: Orden = Depends(get_orden),
 ) -> dict:
     stmt = consultas.ranking(
-        consultas.DIM_PROVEEDOR_PAIS,
+        consultas.DIM_PROVEEDOR,
         filtros,
         orden.order_by,
         orden.desc,

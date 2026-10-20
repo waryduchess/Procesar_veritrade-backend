@@ -17,7 +17,7 @@ Backend para procesar datos de importaciones de Veritrade (México): pipeline de
 ```bash
 git clone <url-del-repo> Procesar_veritrade-backend
 cd Procesar_veritrade-backend
-cp .env.example .env   # luego pon tu GROQ_API_KEY
+cp .env.example .env   # luego pon tu DEEPSEEK_API_KEY
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
@@ -33,8 +33,11 @@ El archivo `.env` está en `.gitignore`, así que créalo a partir de `.env.exam
 MYSQL_URL=mysql+pymysql://veritrade:veritrade123@localhost:3307/veritrade?charset=utf8mb4
 API_PORT=8000
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-GROQ_API_KEY=tu_api_key_de_groq
-GROQ_MODEL=openai/gpt-oss-20b
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=tu_api_key_de_deepseek
+DEEPSEEK_MODEL=deepseek-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_THINKING=false
 ```
 
 ### 3. Levantar MySQL
@@ -88,7 +91,7 @@ npx -y @usebruno/cli run --env local
 - `GET /meta/{aduanas,paises,partidas}`
 - `GET /exportar/{importadores,proveedores,importaciones}?formato=xlsx|csv`
 - `GET /preguntas` (`?categoria=`) y `POST /consulta` — glosario de preguntas precargadas (reglas, sin IA)
-- `POST /agente/consulta` — agente LLM + tools (Groq) que responde solo con datos de la BD
+- `POST /agente/consulta` — agente LLM + tools (DeepSeek/Groq) que responde solo con datos de la BD
 - `POST /procesamiento/upload`, `POST /procesamiento/cargar`, `GET /procesamiento/status/{job_id}`, `GET /procesamiento/historial`
 
 Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `aduana`,
@@ -122,13 +125,16 @@ curl -X POST localhost:8000/consulta -H 'Content-Type: application/json' \
 
 ### Agente (LLM + tools)
 
-`POST /agente/consulta` recibe `{"pregunta": "..."}` y responde en lenguaje natural
-usando **solo** resultados de la base de datos. El modelo (`groq`, por defecto
-`openai/gpt-oss-120b`) elige entre 5 tools que ejecutan internamente
-`app/services/consultas.py`: `resumen_kpis`, `ranking(dimension=...)`,
-`serie_mensual`, `buscar_operaciones` y `catalogo`.
+`POST /agente/consulta` recibe `{"pregunta": "...", "historial": [...]}` (historial opcional) y responde en lenguaje natural
+usando **solo** resultados de la base de datos. El proveedor es configurable con
+`LLM_PROVIDER` (`deepseek` por defecto con `deepseek-flash`; o `groq`). El modelo
+elige entre 5 tools que ejecutan internamente `app/services/consultas.py`:
+`resumen_kpis`, `ranking(dimension=...)`, `serie_mensual`, `buscar_operaciones` y
+`catalogo`.
 
-- **Stateless**: cada pregunta es independiente (sin memoria de conversación).
+- **Memoria conversacional**: acepta `historial` (máx. 50 mensajes; usa los últimos 10) para preguntas de seguimiento. El servidor no guarda sesiones: el cliente envía el contexto en cada request.
+- **Proveedor**: `deepseek` (default, thinking desactivado) o `groq`; cambiar
+  `LLM_PROVIDER` o las API keys requiere reiniciar el backend.
 - **Sin SQL libre**: el modelo solo puede llamar tools acotadas.
 - **Anti-alucinación**: si no llama ninguna tool, responde
   `No tengo ese dato en la base de datos.` y no inventa.
@@ -141,14 +147,27 @@ curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' 
   -d '{"pregunta":"¿Cuál es el valor y volumen total importado?"}'
 ```
 
-> **Límites de Groq (plan gratis):** 8000 tokens/minuto (TPM) y 200.000
+Para una pregunta de seguimiento, envía los turnos previos:
+
+```bash
+curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
+  -d '{"pregunta":"¿Y qué proveedores les venden?","historial":[
+    {"role":"user","content":"¿Quiénes son los top 3 importadores de la partida 304610100?"},
+    {"role":"assistant","content":"..."}
+  ]}'
+```
+
+> **DeepSeek (default):** el costo y los límites dependen de tu cuenta y saldo;
+> `deepseek-flash` es la opción económica. Sin saldo, el endpoint responde `402`.
+>
+> **Groq (fallback, plan gratis):** 8000 tokens/minuto (TPM) y 200.000
 > tokens/día (TPD) **por modelo**. El `openai/gpt-oss-120b` se agota rápido; para
 > desarrollo usa `GROQ_MODEL=openai/gpt-oss-20b`. Cada desarrollador debe usar su
 > propia `GROQ_API_KEY`. Si se agota la cuota, el endpoint responde `429` con el
 > modelo, el tipo de límite (TPM/TPD) y el tiempo de reintento.
 >
-> Los tests de `tests/bruno/agente/` hacen varias llamadas al LLM. Con el 120b
-> pueden fallar por TPM aunque el saludo funcione por separado; con el 20b pasan.
+> Los tests de `tests/bruno/agente/` hacen varias llamadas al LLM. Con Groq 120b
+> pueden fallar por TPM aunque el saludo funcione por separado.
 
 ## Estructura
 

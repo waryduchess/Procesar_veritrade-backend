@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -188,8 +188,14 @@ class ConsultaOut(BaseModel):
     sugerencias: list[str] | None = None
 
 
-class AgenteIn(BaseModel):
+class MensajeHistorial(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ConsultaRequest(BaseModel):
     pregunta: str = Field(min_length=1, max_length=2000)
+    historial: list[MensajeHistorial] | None = Field(default=None, max_length=50)
 
 
 class ToolCallOut(BaseModel):

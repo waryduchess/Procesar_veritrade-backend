@@ -2,21 +2,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import AgenteIn, AgenteOut
+from app.schemas import AgenteOut, ConsultaRequest
 from app.services import agente, llm
 
 router = APIRouter(prefix="/agente", tags=["agente"])
 
 
 @router.post("/consulta", response_model=AgenteOut)
-def consulta(payload: AgenteIn, db: Session = Depends(get_db)) -> dict:
+def consulta(payload: ConsultaRequest, db: Session = Depends(get_db)) -> dict:
     if not llm.disponible():
         raise HTTPException(
             status_code=503,
-            detail="GROQ_API_KEY no está configurada en .env",
+            detail=f"{llm.variable_api_key()} no está configurada en .env",
         )
+    historial = [m.model_dump() for m in payload.historial] if payload.historial else None
     try:
-        return agente.consultar(db, payload.pregunta)
+        return agente.consultar(db, payload.pregunta, historial)
     except agente.AgenteLimite as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except agente.AgenteError as exc:

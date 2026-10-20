@@ -199,21 +199,23 @@ LLM (tool-calling) cuando exista API key, sin reescribir la capa de datos.
 
 **Tests:** `tests/bruno/asistente/` + ampliación de reportes (`pct_acumulado`, `solo_principales`).
 
-### Fase 9 — Agente LLM con tools (Groq)
+### Fase 9 — Agente LLM con tools (DeepSeek/Groq)
 
 Completada (`app/services/agente.py`, `app/services/tools.py`, `app/services/llm.py`,
 `app/routers/agente.py`, `app/data/esquema.json`). Se mantiene `POST /consulta`
 (reglas) separado como capa determinista.
 
-- [x] `POST /agente/consulta` `{pregunta}` — stateless, sin streaming
+- [x] `POST /agente/consulta` `{pregunta, historial?}` — sin streaming; el historial viaja en cada request
 - [x] 5 tools sobre `consultas.py`: `resumen_kpis`, `ranking(dimension)`, `serie_mensual`, `buscar_operaciones`, `catalogo`
 - [x] `ranking` unifica importadores, importadores_cancun, proveedores, proveedores_por_pais, paises_origen, partidas y tipo_importacion
 - [x] Grounding: sin tool-call → `No tengo ese dato en la base de datos.`; `datos_usados` para auditoría
-- [x] Saludos/agradecimientos: respuesta cordial sin tools (detección de saludo puro + regla 13 del prompt)
+- [x] Saludos/agradecimientos: respuesta cordial sin tools (detección de saludo puro + regla de saludos del prompt)
 - [x] Diccionario de datos (`app/data/esquema.json`) inyectado al system prompt
-- [x] Manejo de `429`/`413` del tier gratuito (8k TPM / 200k TPD por modelo) con mensaje que indica modelo, TPM/TPD y `retry-after`
-- [x] `GROQ_MODEL` configurable; `.env.example` recomienda `openai/gpt-oss-20b` para desarrollo
-- [x] Schemas `AgenteIn`, `ToolCallOut`, `AgenteOut`; `groq` en `requirements.txt`
+- [x] Errores claros: `401/403` key inválida, `402` saldo insuficiente, `413` consulta grande y `429` límite (con modelo, TPM/TPD y `retry-after`)
+- [x] Memoria conversacional: sanitiza y envía los últimos 10 mensajes; regla de seguimiento reutiliza filtros previos (partida, aduana, período, etc.)
+- [x] Proveedor configurable con `LLM_PROVIDER`: `deepseek` (default, `deepseek-flash`, thinking desactivado) o `groq`
+- [x] SDK `openai` para ambos proveedores; `.env.example` con DeepSeek default y Groq fallback
+- [x] Schemas `ConsultaRequest`/`MensajeHistorial`, `ToolCallOut`, `AgenteOut`; `openai` en `requirements.txt`
 
 **Tests:** `tests/bruno/agente/` (consulta con tools y fuera de tema).
 

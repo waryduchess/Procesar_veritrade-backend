@@ -15,6 +15,9 @@ uploads/
 # Variables de entorno
 .env
 
+# Respaldos locales de volúmenes
+backups/
+
 # Sistema
 .DS_Store
 Thumbs.db

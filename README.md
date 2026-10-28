@@ -61,6 +61,44 @@ Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `da
 - Documentación: http://localhost:8000/docs
 - Health check: http://localhost:8000/health → `{"status":"ok","db":"ok"}`
 
+### 5. Desplegar la API en el VPS con Docker
+
+El compose de producción solo levanta la API. **MySQL debe existir por separado**
+(servicio administrado o contenedor externo); no se incluye en este compose.
+
+```bash
+cp .env.production.example .env
+# Edita MYSQL_URL con el host, usuario, contraseña y base reales.
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+```
+
+La API queda publicada únicamente en `127.0.0.1:${API_PORT:-8000}`. No abras el
+puerto 8000 al público: la API aún no tiene autenticación. El frontend/proxy futuro
+debe entrar por la red Docker `veritrade_net` usando `veritrade_api:8000`, y publicar
+solo `80/443` con TLS.
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f api
+curl http://127.0.0.1:8000/health
+```
+
+- El contenedor corre como usuario no root y usa un solo worker porque los jobs de
+  procesamiento viven en memoria.
+- El healthcheck consulta `/health` y exige `"db": "ok"`.
+- `uploads/` y `salida/` se guardan en los volúmenes `veritrade_uploads` y
+  `veritrade_salida`.
+- Para actualizar: `git pull`, rebuild y `up -d`.
+
+Respaldo de los volúmenes:
+
+```bash
+mkdir -p backups
+docker run --rm -v veritrade_uploads:/data -v "$PWD/backups":/backup alpine tar czf /backup/uploads.tar.gz -C /data .
+docker run --rm -v veritrade_salida:/data -v "$PWD/backups":/backup alpine tar czf /backup/salida.tar.gz -C /data .
+```
+
 ## Pipeline de datos (opcional)
 
 ```bash
@@ -255,6 +293,9 @@ tests/bruno/         # colección de pruebas Bruno
 procesar_veritrade.py# limpieza del Excel (script standalone)
 cargar_mysql.py      # carga a MySQL (script standalone)
 cargar_compras.py    # carga el CSV de compras a MySQL (script standalone)
-docker-compose.yml   # MySQL 8
+docker-compose.yml   # MySQL 8 para desarrollo local
+docker-compose.prod.yml # API para VPS (MySQL externo)
+Dockerfile           # imagen de la API
+.env.production.example # plantilla de variables para VPS
 ROADMAP.md           # plan de fases del proyecto
 ```

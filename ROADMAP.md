@@ -161,11 +161,11 @@ Los `/meta/*` alimentan los dropdowns del frontend.
 
 - [ ] Background jobs (Celery + Redis, o RQ)
 - [ ] Autenticación JWT (OAuth2 de FastAPI)
-- [ ] Dockerizar la API (servicio `api` en docker-compose)
+- [x] Dockerizar la API (servicio `api` en `docker-compose.prod.yml`, MySQL externo y solo `127.0.0.1`)
 - [ ] Nginx como reverse proxy
 - [ ] Rate limiting (slowapi)
 - [ ] Logs estructurados (loguru + JSON)
-- [ ] Health checks y métricas
+- [ ] Health checks de aplicación y métricas (el contenedor ya valida `/health` y la conexión a MySQL)
 
 ### Fase 8 — Capa de consulta y mejoras de datos (demo, sin IA)
 

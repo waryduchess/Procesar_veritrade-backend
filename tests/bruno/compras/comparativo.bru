@@ -1,0 +1,57 @@
+meta {
+  name: Compras comparativo
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/compras/comparativo?dimension=descripcion&metrica=importe_mxn&mes=2026-09&comparar=2026-08&top=5&min_registros=3
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve periodos seleccionados", function() {
+    const body = res.getBody();
+    expect(body.periodo.mes).to.equal("2026-09");
+    expect(body.periodo_anterior.mes).to.equal("2026-08");
+    expect(body.periodos).to.be.an("array");
+    expect(body.periodos.length).to.be.above(0);
+  });
+
+  test("respeta top y trae items", function() {
+    const items = res.getBody().items;
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.above(0);
+    expect(items.length).to.be.at.most(5);
+  });
+
+  test("item trae comparacion completa", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("clave");
+    expect(item).to.have.property("valor_actual");
+    expect(item).to.have.property("valor_previo");
+    expect(item).to.have.property("delta_abs");
+    expect(item).to.have.property("variacion_pct");
+    expect(item).to.have.property("share_actual");
+    expect(item).to.have.property("share_previo");
+    expect(item).to.have.property("delta_pp");
+    expect(item).to.have.property("estado");
+    expect(["sube", "baja", "nuevo", "desaparece", "sin_cambio"]).to.include(item.estado);
+  });
+
+  test("delta absoluto es valor actual menos previo", function() {
+    res.getBody().items.forEach((item) => {
+      expect(Math.abs(item.delta_abs - (item.valor_actual - item.valor_previo))).to.be.below(0.000001);
+    });
+  });
+
+  test("ordenado por diferencia absoluta descendente", function() {
+    const deltas = res.getBody().items.map((i) => Math.abs(i.delta_abs));
+    expect(deltas).to.eql([...deltas].sort((a, b) => b - a));
+  });
+}

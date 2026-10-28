@@ -26,6 +26,13 @@ tests {
     expect(res.getBody().ambitos).to.eql(["nacional", "internacional"]);
   });
 
+  test("incluye años disponibles", function() {
+    const anios = res.getBody().anios;
+    expect(anios).to.be.an("array");
+    expect(anios.length).to.be.above(0);
+    expect(anios).to.include(2026);
+  });
+
   test("hay registros y rango de fechas", function() {
     const body = res.getBody();
     expect(body.total_registros).to.be.above(0);

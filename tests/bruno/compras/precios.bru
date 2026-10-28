@@ -1,0 +1,50 @@
+meta {
+  name: Compras precios
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/compras/precios?anio=2026&top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("respeta top y devuelve productos", function() {
+    const items = res.getBody();
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.above(0);
+    expect(items.length).to.be.at.most(5);
+  });
+
+  test("cada producto trae metricas y año", function() {
+    const item = res.getBody()[0];
+    expect(item).to.have.property("descripcion");
+    expect(item).to.have.property("categoria");
+    expect(item).to.have.property("importe_mxn");
+    expect(item).to.have.property("cantidad");
+    expect(item).to.have.property("precio_promedio_mxn");
+    expect(item).to.have.property("registros");
+    expect(item).to.have.property("proveedores");
+    expect(item).to.have.property("meses");
+    expect(item.anio).to.equal(2026);
+    expect(item.registros).to.be.above(0);
+  });
+
+  test("precio promedio es importe entre cantidad", function() {
+    const item = res.getBody()[0];
+    expect(item.cantidad).to.be.above(0);
+    const esperado = item.importe_mxn / item.cantidad;
+    expect(Math.abs(item.precio_promedio_mxn - esperado)).to.be.below(0.000001);
+  });
+
+  test("ordenado por importe descendente", function() {
+    const importes = res.getBody().map((i) => i.importe_mxn);
+    expect(importes).to.eql([...importes].sort((a, b) => b - a));
+  });
+}

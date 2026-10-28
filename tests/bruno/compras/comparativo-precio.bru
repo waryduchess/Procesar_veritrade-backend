@@ -1,0 +1,38 @@
+meta {
+  name: Compras comparativo precio
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/compras/comparativo?dimension=proveedor&metrica=precio_promedio_mxn&top=5&min_registros=1
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("usa metrica de precio promedio", function() {
+    const body = res.getBody();
+    expect(body.metrica).to.equal("precio_promedio_mxn");
+    expect(body.total_actual).to.be.above(0);
+    expect(body.items.length).to.be.above(0);
+  });
+
+  test("no calcula participacion para precios", function() {
+    res.getBody().items.forEach((item) => {
+      expect(item.share_actual).to.equal(null);
+      expect(item.share_previo).to.equal(null);
+      expect(item.delta_pp).to.equal(null);
+    });
+  });
+
+  test("delta absoluto es valor actual menos previo", function() {
+    res.getBody().items.forEach((item) => {
+      expect(Math.abs(item.delta_abs - (item.valor_actual - item.valor_previo))).to.be.below(0.000001);
+    });
+  });
+}

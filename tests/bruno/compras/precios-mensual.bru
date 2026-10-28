@@ -1,0 +1,37 @@
+meta {
+  name: Compras precios mensual
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/compras/precios/mensual?descripcion=CAMARON%2041%2F50&anio=2026
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve meses del producto", function() {
+    const items = res.getBody();
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.above(0);
+  });
+
+  test("ordenado por mes ascendente", function() {
+    const meses = res.getBody().map((i) => i.mes);
+    expect(meses).to.eql([...meses].sort());
+  });
+
+  test("cada mes trae precio ponderado", function() {
+    const item = res.getBody()[0];
+    expect(item.mes).to.match(/^\d{4}-\d{2}$/);
+    expect(item.cantidad).to.be.above(0);
+    expect(item.registros).to.be.above(0);
+    const esperado = item.importe_mxn / item.cantidad;
+    expect(Math.abs(item.precio_promedio_mxn - esperado)).to.be.below(0.000001);
+  });
+}

@@ -118,6 +118,7 @@ npx -y @usebruno/cli run --env local
 - `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
 - `GET /meta/{aduanas,paises,partidas}`
 - `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos,exportar}`
+- `GET /compras/precios`, `/compras/precios/mensual`, `/compras/comparativo` — analítica de precios y comparativo mensual
 - `POST /compras/importar` (`?modo=agregar|reemplazar`) — carga CSV de compras
 - `GET /exportar/{importadores,proveedores,importaciones}?formato=xlsx|csv`
 - `GET /preguntas` (`?categoria=`) y `POST /consulta` — glosario de preguntas precargadas (reglas, sin IA)
@@ -142,6 +143,18 @@ Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `a
 `page`, `page_size`, `top`, `order_by` (`fecha` | `importe_mxn` |
 `precio_unitario_mxn` | `cantidad` | `proveedor`) y `desc`. Todos los importes se
 expresan en **MXN**. `GET /compras/exportar` acepta `formato=xlsx|csv`.
+
+`GET /compras/precios` calcula el precio promedio anual ponderado por cantidad
+(`importe_mxn / cantidad`), agrupado por descripción exacta; acepta `anio` y `top`.
+`GET /compras/precios/mensual` requiere `descripcion` y acepta `anio` para devolver
+la serie mensual ponderada del producto.
+
+`GET /compras/comparativo` compara dos meses calendario (`mes` y `comparar`,
+formato `YYYY-MM`; por defecto el último mes completo contra el anterior) por
+`dimension=descripcion|categoria|proveedor` y
+`metrica=importe_mxn|cantidad|precio_promedio_mxn`; acepta `order_by=delta_abs|delta_pp|valor_actual`,
+`top` y `min_registros`. Los filtros de fecha global se ignoran. Para precios no se
+calcula participación y `share_*`/`delta_pp` quedan nulos.
 
 `GET /reportes/tipo-importacion` acepta `solo_principales=true` para agrupar en
 Depósito fiscal e Importación definitiva.

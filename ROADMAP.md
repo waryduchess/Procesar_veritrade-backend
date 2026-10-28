@@ -247,11 +247,13 @@ en el frontend (`/compras`).
 - [x] `fraccion_valida` + conteos de fracciones válidas, inválidas y sin capturar
 - [x] Carga transaccional `reemplazar`/`agregar`, copia del CSV en `uploads/compras/`
 - [x] `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos,exportar}`
+- [x] `GET /compras/precios`, `/compras/precios/mensual` y `/compras/comparativo`
+- [x] Pestañas de precios anuales ponderados y comparativo de dos meses
 - [x] `POST /compras/importar` desde la interfaz
 - [x] Dashboard con KPIs, serie mensual, nacional vs internacional, categorías, proveedores, tabla y exportación
 - [x] Filtros server-side por fecha, categoría, proveedor, ámbito, fracción y búsqueda
 - [x] Importes normalizados a **MXN**; `Cantidad` no se suma globalmente porque mezcla kg y piezas
-- [x] Tests Bruno en `tests/bruno/compras/` (9 requests / 34 tests)
+- [x] Tests Bruno en `tests/bruno/compras/` (13 requests / 54 tests)
 
 > `Cantidad` se conserva y muestra por fila, pero no se agrega en totales porque el CSV
 > mezcla kilogramos y piezas. Los duplicados del archivo original se conservan por

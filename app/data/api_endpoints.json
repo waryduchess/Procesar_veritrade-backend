@@ -56,7 +56,7 @@
       "ruta": "/compras/kpis",
       "modulo": "compras",
       "descripcion": "Importe total MXN, registros, proveedores, categorías, meses, nacional/internacional y cobertura de fechas.",
-      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"]
+      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "descripcion", "ambito", "fraccion", "q"]
     },
     {
       "tool": "compras_ranking",
@@ -64,7 +64,7 @@
       "ruta": "/compras/{categorias,proveedores}",
       "modulo": "compras",
       "descripcion": "Ranking de categorías o proveedores por importe MXN, con registros y participación.",
-      "params": ["dimension", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q", "top"]
+      "params": ["dimension", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "descripcion", "ambito", "fraccion", "q", "top"]
     },
     {
       "tool": "compras_mensual",
@@ -72,7 +72,7 @@
       "ruta": "/compras/mensual",
       "modulo": "compras",
       "descripcion": "Serie mensual de importe MXN, nacional/internacional, registros y bandera de mes completo.",
-      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"]
+      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "descripcion", "ambito", "fraccion", "q"]
     },
     {
       "tool": "compras_precio_producto",
@@ -88,7 +88,7 @@
       "ruta": "/compras/comparativo",
       "modulo": "compras",
       "descripcion": "Compara dos meses por descripción, categoría o proveedor.",
-      "params": ["dimension", "mes", "comparar", "metrica", "order_by", "top", "min_registros", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"],
+      "params": ["dimension", "mes", "comparar", "metrica", "order_by", "top", "min_registros", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "descripcion", "ambito", "fraccion", "q"],
       "nota": "Los filtros globales de fecha se ignoran; el período se define con mes y comparar."
     },
     {
@@ -97,7 +97,7 @@
       "ruta": "/compras/articulos",
       "modulo": "compras",
       "descripcion": "Listado de compras filtrado; q busca en descripción, proveedor o fracción.",
-      "params": ["q", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "top"]
+      "params": ["q", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "descripcion", "ambito", "fraccion", "top"]
     },
     {
       "tool": "compras_catalogo",

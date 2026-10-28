@@ -1,0 +1,32 @@
+meta {
+  name: Agente filtros Aves
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Dame información sobre nuestras compras de Aves",
+    "modulo": "compras"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("sugiere filtro de categoría AVES en Compras", function() {
+    const body = res.getBody();
+    expect(body.filtros_sugeridos).to.be.an("object");
+    expect(body.filtros_sugeridos.modulo).to.equal("compras");
+    expect(body.filtros_sugeridos.filtros.categoria).to.equal("AVES");
+    expect(body.filtros_sugeridos.tab).to.equal("graficas");
+  });
+}

@@ -275,7 +275,9 @@ Completada la fase backend (`app/services/agente.py`, `app/services/tools.py`,
 - [x] `modulo=auto|importaciones|compras` y contexto de módulo en el historial.
 - [x] Sin límite de tokens de salida impuesto por la app por defecto (`0` omite `max_tokens`).
 - [x] Historial de hasta 40,000 caracteres por mensaje, resumen extractivo del asistente y contexto efectivo de ~12,000 caracteres.
-- [ ] Frontend: chat global, historial y módulo actual.
+- [x] `filtros_sugeridos` con módulo, filtros canónicos y pestaña sugerida.
+- [x] Filtro exacto `descripcion` en Compras y catálogo de descripciones en `/compras/meta`.
+- [ ] Frontend: chat global, historial, módulo actual y aplicación de filtros sugeridos.
 - [ ] Pruebas Bruno de informe, aclaración y capacidades en frontend.
 
 ---

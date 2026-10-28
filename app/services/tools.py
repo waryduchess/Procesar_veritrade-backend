@@ -59,6 +59,10 @@ _FILTROS_COMPRAS = {
         "description": "Categoría exacta; usa 'Sin categoría' para las vacías",
     },
     "proveedor": {"type": ["string", "null"], "description": "Contiene"},
+    "descripcion": {
+        "type": ["string", "null"],
+        "description": "Descripción exacta del artículo",
+    },
     "ambito": {
         "type": ["string", "null"],
         "enum": ["nacional", "internacional", None],
@@ -177,6 +181,7 @@ def _filtros_compras(args: dict) -> FiltrosCompras:
         fecha_hasta=_fecha(args.get("fecha_hasta")),
         categoria=_texto(args, "categoria"),
         proveedor=_texto(args, "proveedor"),
+        descripcion=_texto(args, "descripcion"),
         ambito=ambito,
         fraccion=_texto(args, "fraccion"),
         q=_texto(args, "q"),

@@ -184,11 +184,12 @@ Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `a
 `pais_origen`, `partida`, `importador`, `exportador`, `page`, `page_size`, `top`,
 `order_by` (`valor_usd` | `volumen_kg` | `mes`), `desc`.
 
-`/compras/*` acepta `fecha_desde`, `fecha_hasta`, `categoria`, `proveedor`, `ambito`
-(`nacional` | `internacional`), `fraccion`, `q` (descripción/proveedor/fracción),
-`page`, `page_size`, `top`, `order_by` (`fecha` | `importe_mxn` |
-`precio_unitario_mxn` | `cantidad` | `proveedor`) y `desc`. Todos los importes se
-expresan en **MXN**. `GET /compras/exportar` acepta `formato=xlsx|csv`.
+`/compras/*` acepta `fecha_desde`, `fecha_hasta`, `categoria`, `proveedor`,
+`descripcion` (descripción exacta), `ambito` (`nacional` | `internacional`),
+`fraccion`, `q` (descripción/proveedor/fracción), `page`, `page_size`, `top`,
+`order_by` (`fecha` | `importe_mxn` | `precio_unitario_mxn` | `cantidad` |
+`proveedor`) y `desc`. Todos los importes se expresan en **MXN**.
+`GET /compras/exportar` acepta `formato=xlsx|csv`.
 
 `GET /compras/precios` calcula el precio promedio anual ponderado por cantidad
 (`importe_mxn / cantidad`), agrupado por descripción exacta; acepta `anio` y `top`.
@@ -264,7 +265,12 @@ Request:
 - `modo`: `auto`, `consulta` o `informe`. `auto` detecta informes, análisis y recomendaciones.
 - `historial`: máximo 50 mensajes; cada mensaje acepta hasta 40,000 caracteres. El servidor usa los últimos 12, resume las respuestas del asistente y limita el contexto efectivo a ~12,000 caracteres.
 - Las respuestas largas no se reenvían completas al modelo: se conserva un resumen con encabezados, hallazgos y limitaciones.
-- Response: `respuesta`, `tool_calls`, `datos_usados`, `modo` y `modulo`.
+- Response: `respuesta`, `tool_calls`, `datos_usados`, `modo`, `modulo` y
+  `filtros_sugeridos`.
+- `filtros_sugeridos` contiene módulo, filtros validados contra catálogos y pestaña
+  sugerida, para que el frontend aplique la consulta en la vista correspondiente.
+  Ejemplo: `{"modulo":"compras","filtros":{"categoria":"AVES"},"tab":"graficas"}`.
+  Para aduanas usa el valor canónico, por ejemplo `CANCUN- QUINTANA ROO`.
 
 **Contexto de la IA**
 

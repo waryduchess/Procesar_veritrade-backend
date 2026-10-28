@@ -38,7 +38,7 @@
   "playbooks": {
     "producto": {
       "pasos": [
-        "Resolver el producto. En Compras usa compras_precio_producto con q y muestra coincidencias. En Importaciones usa importaciones_catalogo(tipo=partidas) y, si hace falta, importaciones_buscar.",
+        "Resolver el producto. En Compras usa compras_precio_producto con q y muestra coincidencias; cuando tengas la descripción exacta, pásala en descripcion a las tools. En Importaciones usa importaciones_catalogo(tipo=partidas) y, si hace falta, importaciones_buscar.",
         "Si hay varias coincidencias, pedir aclaración antes de agregar.",
         "Calcular KPIs del producto con el filtro correspondiente.",
         "Obtener serie mensual.",
@@ -69,6 +69,7 @@
     "categoria": {
       "pasos": [
         "Usar compras_catalogo para validar la categoría exacta.",
+        "Si el tema coincide con una categoría conocida, usar categoria en todas las tools; no usar q como sustituto.",
         "Calcular compras_kpis con la categoría.",
         "Obtener compras_mensual, compras_ranking(proveedores) y compras_precio_producto(q=...).",
         "Revisar concentración y muestra suficiente antes de recomendar."

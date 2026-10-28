@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,7 +11,8 @@ from sqlalchemy.orm import Session
 from openai import APIStatusError, RateLimitError
 
 from app.config import settings
-from app.services import llm
+from app.models import Importacion
+from app.services import consultas, consultas_compras, llm
 from app.services.tools import TOOLS, TOOL_DEFINITIONS
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -196,7 +198,11 @@ Reglas de tools:
   opciones. No elijas una al azar.
 - Si el usuario pide "todos", usa top=50 y aclara que puede haber más registros.
 - Para un producto en Compras, primero busca con compras_precio_producto(q=...) y
-  luego usa la descripción exacta.
+  luego usa la descripción exacta. Cuando ya conozcas la descripción, pásala en
+  'descripcion' a las tools de Compras; usa 'q' solo para buscar coincidencias.
+- Si el tema de Compras coincide con una categoría conocida (AVES, CERDO, FRUTA,
+  OTROS, PAPAS, PESCADOS Y MARISCOS, RES o Sin categoría), usa 'categoria' en las
+  tools de análisis. No trates la categoría como texto libre con 'q'.
 - Para un producto en Importaciones, revisa importaciones_catalogo(tipo=partidas) y
   usa la partida correspondiente.
 
@@ -384,6 +390,257 @@ def _modulo_final(modulo: str, llamadas: list[dict]) -> str | None:
     return modulo if modulo in ("importaciones", "compras") else None
 
 
+_FILTROS_VISTA_IMPORTACIONES = (
+    "fecha_desde",
+    "fecha_hasta",
+    "aduana",
+    "pais_origen",
+    "partida",
+    "importador",
+    "exportador",
+)
+
+_FILTROS_VISTA_COMPRAS = (
+    "fecha_desde",
+    "fecha_hasta",
+    "categoria",
+    "proveedor",
+    "descripcion",
+    "ambito",
+    "fraccion",
+    "q",
+)
+
+
+def _fecha_valida(valor: str) -> bool:
+    try:
+        date.fromisoformat(valor)
+    except ValueError:
+        return False
+    return True
+
+
+def _resultado_con_datos(resultado) -> bool:
+    if not isinstance(resultado, dict):
+        return True
+    if resultado.get("error"):
+        return False
+    if resultado.get("encontrado") is False:
+        return bool(resultado.get("items") or resultado.get("producto"))
+    if "total" in resultado and resultado.get("total") == 0:
+        return False
+    if "registros" in resultado and resultado.get("registros") == 0:
+        return False
+    if "total_items" in resultado and resultado.get("total_items") == 0:
+        return False
+    return True
+
+
+def _elegir_canonico(valor: str, opciones) -> str | None:
+    objetivo = _normalizar(valor)
+    if not objetivo:
+        return None
+    valores = [str(opcion) for opcion in opciones if opcion is not None]
+    for opcion in valores:
+        if _normalizar(opcion) == objetivo:
+            return opcion
+    coincidencias = [
+        opcion for opcion in valores if objetivo in _normalizar(opcion)
+    ]
+    return coincidencias[0] if len(coincidencias) == 1 else None
+
+
+def _partida_canonica(db: Session, valor: str) -> str | None:
+    objetivo = _normalizar(valor)
+    if not objetivo:
+        return None
+    partidas = consultas.meta_partidas(db)
+    for partida in partidas:
+        codigo = str(partida.get("partida_arancelaria") or "")
+        if _normalizar(codigo) == objetivo:
+            return codigo
+    coincidencias = [
+        str(partida.get("partida_arancelaria"))
+        for partida in partidas
+        if objetivo
+        in _normalizar(str(partida.get("descripcion_partida") or ""))
+    ]
+    return coincidencias[0] if len(coincidencias) == 1 else None
+
+
+def _canonicalizar_importaciones(
+    db: Session, filtros: dict[str, str]
+) -> dict[str, str]:
+    salida = dict(filtros)
+    for clave in ("fecha_desde", "fecha_hasta"):
+        if clave in salida and not _fecha_valida(salida[clave]):
+            salida.pop(clave)
+    for clave, opciones in (
+        ("aduana", consultas.valores_meta(db, Importacion.aduana)),
+        ("pais_origen", consultas.valores_meta(db, Importacion.pais_origen)),
+    ):
+        if clave in salida:
+            canonico = _elegir_canonico(salida[clave], opciones)
+            if canonico:
+                salida[clave] = canonico
+            else:
+                salida.pop(clave)
+    if "partida" in salida:
+        canonico = _partida_canonica(db, salida["partida"])
+        if canonico:
+            salida["partida"] = canonico
+        else:
+            salida.pop("partida")
+    return salida
+
+
+def _canonicalizar_compras(db: Session, filtros: dict[str, str]) -> dict[str, str]:
+    salida = dict(filtros)
+    meta = consultas_compras.meta(db)
+    for clave in ("fecha_desde", "fecha_hasta"):
+        if clave in salida and not _fecha_valida(salida[clave]):
+            salida.pop(clave)
+    for clave, opciones, descartar in (
+        ("categoria", meta["categorias"], True),
+        ("fraccion", meta["fracciones"], True),
+        ("descripcion", meta["descripciones"], True),
+        ("proveedor", meta["proveedores"], False),
+    ):
+        if clave in salida:
+            canonico = _elegir_canonico(salida[clave], opciones)
+            if canonico:
+                salida[clave] = canonico
+            elif descartar:
+                salida.pop(clave)
+    if "ambito" in salida and salida["ambito"] not in ("nacional", "internacional"):
+        salida.pop("ambito")
+    if "q" in salida and "descripcion" not in salida:
+        canonico = _elegir_canonico(salida["q"], meta["descripciones"])
+        if canonico:
+            salida["descripcion"] = canonico
+            salida.pop("q")
+    if "q" in salida and "proveedor" not in salida:
+        canonico = _elegir_canonico(salida["q"], meta["proveedores"])
+        if canonico:
+            salida["proveedor"] = canonico
+            salida.pop("q")
+    if "categoria" in salida:
+        salida.pop("descripcion", None)
+        salida.pop("q", None)
+    if "q" in salida and any(
+        clave in salida
+        for clave in ("proveedor", "descripcion", "fraccion")
+    ):
+        salida.pop("q")
+    return salida
+
+
+def _canonicalizar_filtros(
+    db: Session, modulo: str, filtros: dict[str, str]
+) -> dict[str, str]:
+    if modulo == "importaciones":
+        return _canonicalizar_importaciones(db, filtros)
+    return _canonicalizar_compras(db, filtros)
+
+
+def _tab_desde_pregunta(pregunta: str, modulo: str) -> str:
+    palabras = set(_normalizar(pregunta).split())
+
+    def tiene(*terminos: str) -> bool:
+        return any(termino in palabras for termino in terminos)
+
+    if modulo == "compras":
+        if tiene("compara", "comparar", "comparativo", "vs", "versus"):
+            return "comparativo"
+        if tiene("precio", "precios", "costo", "costos"):
+            return "precios"
+        if tiene("tabla", "listado", "detalle", "operaciones"):
+            return "tabla"
+        return "graficas"
+
+    if tiene("compara", "comparar", "comparativo", "vs", "versus"):
+        return "comparativo"
+    if tiene("producto", "productos", "partida", "partidas"):
+        return "productos"
+    if tiene("importador", "importadores"):
+        return "importadores"
+    if tiene("proveedor", "proveedores", "exportador", "exportadores"):
+        return "proveedores"
+    if tiene("matriz"):
+        return "matriz"
+    if tiene("operacion", "operaciones", "detalle", "listado"):
+        return "operaciones"
+    if tiene("pregunta", "preguntas"):
+        return "preguntas"
+    return "resumen"
+
+
+def _sugerir_filtros(
+    db: Session,
+    llamadas: list[dict],
+    datos: list[dict],
+    modulo: str | None,
+    pregunta: str,
+) -> dict | None:
+    if modulo not in ("importaciones", "compras"):
+        return None
+    permitidos = (
+        _FILTROS_VISTA_IMPORTACIONES
+        if modulo == "importaciones"
+        else _FILTROS_VISTA_COMPRAS
+    )
+    prefijo = f"{modulo}_"
+    filtros: dict[str, str] = {}
+
+    for llamada, dato in zip(llamadas, datos):
+        nombre = str(llamada.get("name") or "")
+        if not nombre.startswith(prefijo) or nombre.endswith("_catalogo"):
+            continue
+        resultado = dato.get("resultado") if isinstance(dato, dict) else None
+        if not _resultado_con_datos(resultado):
+            continue
+        args = llamada.get("args")
+        if not isinstance(args, dict):
+            continue
+        for clave in permitidos:
+            valor = args.get(clave)
+            if isinstance(valor, str) and valor.strip():
+                filtros[clave] = valor.strip()
+
+    if not filtros:
+        return None
+    filtros = _canonicalizar_filtros(db, modulo, filtros)
+    if not filtros:
+        return None
+    return {
+        "modulo": modulo,
+        "filtros": filtros,
+        "tab": _tab_desde_pregunta(pregunta, modulo),
+    }
+
+
+def _resultado_agente(
+    db: Session,
+    respuesta: str,
+    llamadas: list[dict],
+    datos: list[dict],
+    modo: str,
+    modulo: str,
+    pregunta: str,
+) -> dict:
+    modulo_final = _modulo_final(modulo, llamadas)
+    return {
+        "respuesta": respuesta,
+        "tool_calls": llamadas,
+        "datos_usados": datos,
+        "modo": modo,
+        "modulo": modulo_final,
+        "filtros_sugeridos": _sugerir_filtros(
+            db, llamadas, datos, modulo_final, pregunta
+        ),
+    }
+
+
 def consultar(
     db: Session,
     pregunta: str,
@@ -452,13 +709,15 @@ def consultar(
             respuesta = (msg.content or "").strip()
             if not llamadas and not _es_saludo(pregunta):
                 respuesta = SIN_DATO
-            return {
-                "respuesta": respuesta or SIN_DATO,
-                "tool_calls": llamadas,
-                "datos_usados": datos,
-                "modo": modo_final,
-                "modulo": _modulo_final(modulo, llamadas),
-            }
+            return _resultado_agente(
+                db,
+                respuesta or SIN_DATO,
+                llamadas,
+                datos,
+                modo_final,
+                modulo,
+                pregunta,
+            )
 
         messages.append(_mensaje_assistant(msg))
 
@@ -480,13 +739,15 @@ def consultar(
                 }
             )
 
-    return {
-        "respuesta": (
+    return _resultado_agente(
+        db,
+        (
             "No pude completar la consulta con la información disponible. "
             "Intenta ser más específico."
         ),
-        "tool_calls": llamadas,
-        "datos_usados": datos,
-        "modo": modo_final,
-        "modulo": _modulo_final(modulo, llamadas),
-    }
+        llamadas,
+        datos,
+        modo_final,
+        modulo,
+        pregunta,
+    )

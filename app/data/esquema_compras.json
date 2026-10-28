@@ -51,9 +51,21 @@
   },
   "comparativo": {
     "descripcion": "Compara dos meses calendario. Por defecto usa el último mes completo contra el anterior.",
-    "dimensiones": ["descripcion", "categoria", "proveedor"],
-    "metricas": ["importe_mxn", "cantidad", "precio_promedio_mxn"],
-    "order_by": ["delta_abs", "delta_pp", "valor_actual"],
+    "dimensiones": [
+      "descripcion",
+      "categoria",
+      "proveedor"
+    ],
+    "metricas": [
+      "importe_mxn",
+      "cantidad",
+      "precio_promedio_mxn"
+    ],
+    "order_by": [
+      "delta_abs",
+      "delta_pp",
+      "valor_actual"
+    ],
     "nota": "Los filtros globales de fecha se ignoran; los períodos se eligen con mes y comparar. Para precio_promedio_mxn no se calculan share_actual, share_previo ni delta_pp.",
     "muestra_suficiente": "true cuando ambos períodos tienen al menos min_registros registros"
   },
@@ -72,5 +84,16 @@
     "Si hay varias descripciones candidatas, pide al usuario que elija.",
     "No mezcles importes de Compras (MXN) con valores de Importaciones (USD).",
     "Si una pregunta no se puede responder con estas columnas, indica que no tienes el dato."
-  ]
+  ],
+  "categorias_conocidas": [
+    "AVES",
+    "CERDO",
+    "FRUTA",
+    "OTROS",
+    "PAPAS",
+    "PESCADOS Y MARISCOS",
+    "RES",
+    "Sin categoría"
+  ],
+  "nota_categorias": "Los valores pueden cambiar; usa compras_catalogo(tipo=categorias) para confirmar antes de filtrar."
 }

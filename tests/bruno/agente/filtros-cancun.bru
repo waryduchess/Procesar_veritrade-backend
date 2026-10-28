@@ -1,0 +1,32 @@
+meta {
+  name: Agente filtros Cancún
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Dime los productos que llegan a la aduana de Cancún",
+    "modulo": "importaciones"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("sugiere aduana canónica y pestaña Productos", function() {
+    const body = res.getBody();
+    expect(body.filtros_sugeridos).to.be.an("object");
+    expect(body.filtros_sugeridos.modulo).to.equal("importaciones");
+    expect(body.filtros_sugeridos.filtros.aduana).to.equal("CANCUN- QUINTANA ROO");
+    expect(body.filtros_sugeridos.tab).to.equal("productos");
+  });
+}

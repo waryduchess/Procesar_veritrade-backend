@@ -19,6 +19,8 @@ tests {
     const body = res.getBody();
     expect(body.categorias).to.be.an("array");
     expect(body.proveedores).to.be.an("array");
+    expect(body.descripciones).to.be.an("array");
+    expect(body.descripciones.length).to.be.above(0);
     expect(body.fracciones).to.be.an("array");
   });
 

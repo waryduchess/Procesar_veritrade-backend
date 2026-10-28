@@ -1,0 +1,26 @@
+meta {
+  name: Compras articulos por descripcion
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/compras/articulos?descripcion=CAMARON%2041%2F50&page=1&page_size=5&order_by=fecha&desc=true
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("filtra por descripción exacta", function() {
+    const body = res.getBody();
+    expect(body.total).to.be.above(0);
+    expect(body.items.length).to.be.above(0);
+    body.items.forEach(function(item) {
+      expect(item.descripcion).to.equal("CAMARON 41/50");
+    });
+  });
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Compras categorias
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/compras/categorias?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("respeta top", function() {
+    const items = res.getBody();
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.at.most(5);
+  });
+
+  test("cada categoria trae metricas", function() {
+    const item = res.getBody()[0];
+    expect(item).to.have.property("categoria");
+    expect(item).to.have.property("importe_mxn");
+    expect(item).to.have.property("registros");
+    expect(item).to.have.property("proveedores");
+    expect(item).to.have.property("pct_importe");
+  });
+
+  test("participacion en rango", function() {
+    const item = res.getBody()[0];
+    expect(item.pct_importe).to.be.at.least(0);
+    expect(item.pct_importe).to.be.at.most(100);
+  });
+}

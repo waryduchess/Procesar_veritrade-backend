@@ -1,3 +1,5 @@
+import shutil
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -5,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 ARCHIVO_DEFECTO = Path("salida/veritrade_limpio.xlsx")
+DIR_HISTORIAL = Path("salida/historial")
 HOJA = "Datos_Limpios"
 
 MAPEO = {
@@ -57,24 +60,50 @@ def cargar_dataframe(ruta=ARCHIVO_DEFECTO, hoja: str = HOJA) -> pd.DataFrame:
     return df.where(pd.notna(df), None)
 
 
-def cargar(ruta, engine: Engine, hoja: str = HOJA) -> dict:
+def _guardar_copia(ruta, modo: str) -> Path:
+    DIR_HISTORIAL.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    destino = DIR_HISTORIAL / f"veritrade_limpio_{timestamp}_{modo}.xlsx"
+    shutil.copy2(ruta, destino)
+    return destino
+
+
+def cargar(
+    ruta,
+    engine: Engine,
+    hoja: str = HOJA,
+    reemplazar: bool = True,
+    guardar_copia: bool = True,
+) -> dict:
     df = cargar_dataframe(ruta, hoja)
 
     with engine.begin() as conn:
-        conn.execute(text("SET FOREIGN_KEY_CHECKS=0;"))
-        conn.execute(text("TRUNCATE TABLE importaciones;"))
-        conn.execute(text("SET FOREIGN_KEY_CHECKS=1;"))
+        if reemplazar:
+            conn.execute(text("DELETE FROM importaciones"))
 
-    df.to_sql(
-        "importaciones",
-        engine,
-        if_exists="append",
-        index=False,
-        chunksize=1000,
-        method="multi",
-    )
+        df.to_sql(
+            "importaciones",
+            conn,
+            if_exists="append",
+            index=False,
+            chunksize=1000,
+            method="multi",
+        )
 
     with engine.connect() as conn:
         total = conn.execute(text("SELECT COUNT(*) FROM importaciones")).scalar()
 
-    return {"filas_insertadas": len(df), "filas_totales_en_bd": total}
+    modo = "reemplazar" if reemplazar else "agregar"
+    detalle = {
+        "filas_insertadas": len(df),
+        "filas_totales_en_bd": total,
+        "modo": modo,
+    }
+
+    if guardar_copia:
+        try:
+            detalle["copia"] = str(_guardar_copia(ruta, modo))
+        except Exception as exc:
+            detalle["copia_error"] = str(exc)
+
+    return detalle

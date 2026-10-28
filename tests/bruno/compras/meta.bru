@@ -1,0 +1,35 @@
+meta {
+  name: Compras meta
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/compras/meta
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("catálogos son arreglos", function() {
+    const body = res.getBody();
+    expect(body.categorias).to.be.an("array");
+    expect(body.proveedores).to.be.an("array");
+    expect(body.fracciones).to.be.an("array");
+  });
+
+  test("incluye ambos ámbitos", function() {
+    expect(res.getBody().ambitos).to.eql(["nacional", "internacional"]);
+  });
+
+  test("hay registros y rango de fechas", function() {
+    const body = res.getBody();
+    expect(body.total_registros).to.be.above(0);
+    expect(body.fecha_min).to.be.a("string");
+    expect(body.fecha_max).to.be.a("string");
+  });
+}

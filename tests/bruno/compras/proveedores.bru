@@ -1,0 +1,33 @@
+meta {
+  name: Compras proveedores
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/compras/proveedores?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("respeta top", function() {
+    const items = res.getBody();
+    expect(items).to.be.an("array");
+    expect(items.length).to.be.at.most(5);
+  });
+
+  test("cada proveedor trae ambito y metricas", function() {
+    const item = res.getBody()[0];
+    expect(item).to.have.property("proveedor");
+    expect(item).to.have.property("ambito");
+    expect(item).to.have.property("importe_mxn");
+    expect(item).to.have.property("registros");
+    expect(item).to.have.property("categorias");
+    expect(["nacional", "internacional"]).to.include(item.ambito);
+  });
+}

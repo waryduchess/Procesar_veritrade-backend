@@ -1,0 +1,32 @@
+meta {
+  name: Matriz producto × origen
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/reportes/matriz?top_filas=5&top_columnas=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve filas, columnas y celdas", function() {
+    const body = res.getBody();
+    expect(body.filas).to.be.an("array");
+    expect(body.columnas).to.be.an("array");
+    expect(body.celdas).to.be.an("array");
+    expect(body.celdas.length).to.equal(body.filas.length * body.columnas.length);
+  });
+
+  test("cada celda trae participación de la fila", function() {
+    const celda = res.getBody().celdas[0];
+    expect(celda).to.have.property("share_fila");
+    expect(celda).to.have.property("registros");
+    expect(celda).to.have.property("muestra_suficiente");
+  });
+}

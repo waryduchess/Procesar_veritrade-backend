@@ -1,0 +1,42 @@
+meta {
+  name: Compras articulos
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/compras/articulos?page=1&page_size=5&order_by=importe_mxn&desc=true
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("pagina con items y total", function() {
+    const body = res.getBody();
+    expect(body.items).to.be.an("array");
+    expect(body.items.length).to.be.at.most(5);
+    expect(body.total).to.be.above(0);
+    expect(body.page).to.equal(1);
+    expect(body.page_size).to.equal(5);
+  });
+
+  test("item trae campos base", function() {
+    const item = res.getBody().items[0];
+    expect(item).to.have.property("id");
+    expect(item).to.have.property("fecha");
+    expect(item).to.have.property("descripcion");
+    expect(item).to.have.property("importe_mxn");
+    expect(item).to.have.property("proveedor");
+    expect(item).to.have.property("ambito");
+    expect(item.fraccion_valida).to.be.a("boolean");
+  });
+
+  test("ordenado por importe descendente", function() {
+    const importes = res.getBody().items.map((i) => i.importe_mxn);
+    expect(importes).to.eql([...importes].sort((a, b) => b - a));
+  });
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Compras KPIs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/compras/kpis
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("hay compras registradas", function() {
+    const body = res.getBody();
+    expect(body.registros).to.be.above(0);
+    expect(body.importe_total_mxn).to.be.above(0);
+  });
+
+  test("nacional mas internacional suma el total", function() {
+    const body = res.getBody();
+    const suma = body.importe_nacional_mxn + body.importe_internacional_mxn;
+    expect(Math.abs(suma - body.importe_total_mxn)).to.be.below(0.01);
+  });
+
+  test("participacion internacional en rango", function() {
+    const body = res.getBody();
+    expect(body.pct_internacional).to.be.at.least(0);
+    expect(body.pct_internacional).to.be.at.most(100);
+  });
+
+  test("trae rango de fechas", function() {
+    const body = res.getBody();
+    expect(body.fecha_min).to.be.a("string");
+    expect(body.fecha_max).to.be.a("string");
+  });
+}

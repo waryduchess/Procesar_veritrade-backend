@@ -1,0 +1,27 @@
+meta {
+  name: Compras articulos internacional
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/compras/articulos?page=1&page_size=25&ambito=internacional
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("solo devuelve compras internacionales", function() {
+    const items = res.getBody().items;
+    expect(items.length).to.be.above(0);
+    expect(items.every((i) => i.ambito === "internacional")).to.equal(true);
+  });
+
+  test("respeta page_size", function() {
+    expect(res.getBody().items.length).to.be.at.most(25);
+  });
+}

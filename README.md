@@ -1,6 +1,6 @@
 # Procesar_veritrade-backend
 
-Backend para procesar datos de importaciones de Veritrade (México): pipeline de limpieza Excel → MySQL y API FastAPI para reportes.
+Backend para procesar datos de importaciones y compras por artículo de Veritrade (México): pipeline de limpieza Excel/CSV → MySQL y API FastAPI para reportes.
 
 > Proyecto de prueba/demo. **Sin autenticación ni medidas de seguridad.**
 
@@ -47,7 +47,7 @@ docker compose up -d
 ```
 
 Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `database/schema.sql`
-(tabla `importaciones` + vistas `v_*`) en el primer arranque.
+(tablas `importaciones` y `compras_articulos` + vistas `v_*`) en el primer arranque.
 
 > MySQL se expone en el puerto **3307** para no chocar con otros proyectos que usen 3306.
 > Si cambias el puerto en `docker-compose.yml`, ajusta `MYSQL_URL` en `.env`.
@@ -67,13 +67,41 @@ Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `da
 # 1. Limpia el Excel de Veritrade y genera salida/veritrade_limpio.xlsx
 .venv/bin/python procesar_veritrade.py
 
-# 2. Carga el Excel procesado a MySQL (trunca e inserta)
+# 2. Reemplaza la tabla con el Excel procesado
 .venv/bin/python cargar_mysql.py
+
+# 2b. Agrega otro Excel sin borrar lo ya cargado
+.venv/bin/python cargar_mysql.py --agregar
 ```
+
+> Para un segundo Excel: procésalo (sobrescribe `salida/veritrade_limpio.xlsx`) y
+> cárgalo con `--agregar` o `POST /procesamiento/cargar?modo=agregar`.
+>
+> Cada carga exitosa guarda una copia del Excel limpio en `salida/historial/` con
+> timestamp y modo. La copia se puede desactivar con `guardar_copia=False` al usar
+> el servicio desde código.
+
+## Compras por artículo (CSV)
+
+El módulo de compras usa `ComprasporartículoBD707.csv` (UTF-8, encabezado en la
+fila 7). Carga inicial o reemplazo:
+
+```bash
+.venv/bin/python cargar_compras.py
+```
+
+- Por defecto **reemplaza** `compras_articulos`; usa `--agregar` para conservar lo existente.
+- También se puede cargar desde la interfaz con `POST /compras/importar`
+  (`modo=reemplazar|agregar`, archivo `.csv`, límite 20 MB).
+- Clasifica nacional/internacional según `app/data/proveedores_internacionales.json`
+  (alias normalizados; el CSV omite sufijos como `SA DE CV`).
+- Conserva duplicados exactos y valida el total contra la fila `Total` del CSV.
+- `fraccion_valida` solo es `true` cuando la fracción tiene formato válido; los
+  valores vacíos se cuentan como `sin_fraccion`.
 
 ## Tests (Bruno)
 
-La colección está en `tests/bruno/`.
+La colección está en `tests/bruno/`. El módulo de compras está en `tests/bruno/compras/`.
 
 ```bash
 cd tests/bruno
@@ -86,20 +114,53 @@ npx -y @usebruno/cli run --env local
 ## Endpoints
 
 - `GET /health`
-- `GET /reportes/{importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,tipo-importacion,partidas,mensual,kpis}`
+- `GET /reportes/{importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,tipo-importacion,partidas,mensual,kpis,comparativo,matriz}`
 - `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
 - `GET /meta/{aduanas,paises,partidas}`
+- `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos,exportar}`
+- `POST /compras/importar` (`?modo=agregar|reemplazar`) — carga CSV de compras
 - `GET /exportar/{importadores,proveedores,importaciones}?formato=xlsx|csv`
 - `GET /preguntas` (`?categoria=`) y `POST /consulta` — glosario de preguntas precargadas (reglas, sin IA)
 - `POST /agente/consulta` — agente LLM + tools (DeepSeek/Groq) que responde solo con datos de la BD
-- `POST /procesamiento/upload`, `POST /procesamiento/cargar`, `GET /procesamiento/status/{job_id}`, `GET /procesamiento/historial`
+- `POST /procesamiento/upload`, `POST /procesamiento/upload-lote`, `POST /procesamiento/cargar` (`?modo=agregar|reemplazar`), `GET /procesamiento/status/{job_id}`, `GET /procesamiento/historial`
+
+`POST /procesamiento/upload` recibe un archivo; `POST /procesamiento/upload-lote`
+recibe varios (`archivos`) y genera un único `salida/veritrade_limpio.xlsx`
+combinado, sin tocar MySQL. Después se llama a `POST /procesamiento/cargar` una sola
+vez.
+
+`POST /procesamiento/cargar` usa `modo=reemplazar` por defecto: elimina los registros
+actuales e inserta los del Excel dentro de una transacción. Con `modo=agregar` inserta
+el Excel procesado sin borrar los registros existentes.
 
 Query params comunes en reportes/importaciones: `fecha_desde`, `fecha_hasta`, `aduana`,
 `pais_origen`, `partida`, `importador`, `exportador`, `page`, `page_size`, `top`,
 `order_by` (`valor_usd` | `volumen_kg` | `mes`), `desc`.
 
+`/compras/*` acepta `fecha_desde`, `fecha_hasta`, `categoria`, `proveedor`, `ambito`
+(`nacional` | `internacional`), `fraccion`, `q` (descripción/proveedor/fracción),
+`page`, `page_size`, `top`, `order_by` (`fecha` | `importe_mxn` |
+`precio_unitario_mxn` | `cantidad` | `proveedor`) y `desc`. Todos los importes se
+expresan en **MXN**. `GET /compras/exportar` acepta `formato=xlsx|csv`.
+
 `GET /reportes/tipo-importacion` acepta `solo_principales=true` para agrupar en
 Depósito fiscal e Importación definitiva.
+
+`GET /reportes/comparativo` compara dos meses calendario (`mes` y `comparar`,
+formato `YYYY-MM`; por defecto el último mes completo contra el anterior) por
+`dimension=partida|pais_origen|importador|exportador` y
+`metrica=valor_usd|volumen_kg`. Devuelve valor actual/previo, variación porcentual,
+participación por mes, cambio en puntos porcentuales, registros, estado (`sube`,
+`baja`, `nuevo`, `desaparece`, `sin_cambio`) y lista de períodos con bandera
+`completo`. Los filtros de fecha global se ignoran; el período se elige con
+`mes`/`comparar`.
+
+`GET /reportes/matriz` devuelve una matriz de partidas ×
+`columna=pais_origen|exportador`, con `metrica=valor_usd|volumen_kg`,
+`top_filas`, `top_columnas` y `min_registros`. Incluye celdas con valor, volumen,
+registros, participación dentro de la fila y marca de muestra suficiente; las filas
+y columnas fuera del top se agrupan en `Otros`. En proveedores se excluyen las
+operaciones sin exportador y se reportan en `omitidos.sin_exportador`.
 
 Los rankings incluyen `pct_total`/`pct_acumulado` (valor USD) y `porcentaje`
 (peso kg). El porcentaje se calcula sobre el total del conjunto filtrado, así que
@@ -173,10 +234,14 @@ curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' 
 
 ```
 app/                 # API FastAPI (config, database, models, schemas, routers, services, utils)
+app/data/proveedores_internacionales.json  # proveedores clasificados como internacionales
 database/            # schema.sql (tabla + vistas)
+salida/              # Excel procesado y copias en salida/historial/ (ignorado)
+uploads/             # Excel originales de cada carga (ignorado)
 tests/bruno/         # colección de pruebas Bruno
 procesar_veritrade.py# limpieza del Excel (script standalone)
 cargar_mysql.py      # carga a MySQL (script standalone)
+cargar_compras.py    # carga el CSV de compras a MySQL (script standalone)
 docker-compose.yml   # MySQL 8
 ROADMAP.md           # plan de fases del proyecto
 ```

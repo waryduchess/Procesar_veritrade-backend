@@ -5,6 +5,7 @@ from app.config import settings
 from app.routers import (
     agente,
     asistente,
+    compras,
     exportar,
     health,
     importaciones,
@@ -27,6 +28,7 @@ app.include_router(health.router)
 app.include_router(reportes.router)
 app.include_router(importaciones.router)
 app.include_router(meta.router)
+app.include_router(compras.router)
 app.include_router(exportar.router)
 app.include_router(procesamiento.router)
 app.include_router(asistente.router)

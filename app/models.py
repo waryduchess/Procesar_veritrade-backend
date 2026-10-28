@@ -5,7 +5,10 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
+    CheckConstraint,
     Column,
+    Date,
     DateTime,
     MetaData,
     Numeric,
@@ -13,6 +16,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -64,6 +68,41 @@ class Importacion(Base):
     mes: Mapped[str | None] = mapped_column(String(7))
 
     creado_en: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class CompraArticulo(Base):
+    __tablename__ = "compras_articulos"
+    __table_args__ = (
+        CheckConstraint(
+            "ambito IN ('nacional', 'internacional')",
+            name="ck_compras_ambito",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+
+    fecha: Mapped[date] = mapped_column(Date, index=True)
+    categoria: Mapped[str | None] = mapped_column(String(120), index=True)
+    fraccion_arancelaria: Mapped[str | None] = mapped_column(String(30), index=True)
+    fraccion_valida: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    descripcion: Mapped[str] = mapped_column(String(500))
+
+    cantidad: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    importe_mxn: Mapped[Decimal] = mapped_column(Numeric(18, 2))
+    precio_unitario_mxn: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    moneda: Mapped[str] = mapped_column(String(3), default="MXN")
+
+    proveedor: Mapped[str] = mapped_column(String(255), index=True)
+    ambito: Mapped[str] = mapped_column(String(20), index=True)
+
+    anio: Mapped[int] = mapped_column(SmallInteger, index=True)
+    mes: Mapped[str] = mapped_column(String(7), index=True)
+
+    archivo_origen: Mapped[str | None] = mapped_column(String(255))
+    fila_origen: Mapped[int | None]
+    creado_en: Mapped[datetime | None] = mapped_column(
+        DateTime, server_default=func.now()
+    )
 
 
 vista_metadata = MetaData()

@@ -1,0 +1,25 @@
+meta {
+  name: Compras exportar xlsx
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/compras/exportar?formato=xlsx
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("content-type xlsx", function() {
+    expect(res.getHeader("content-type")).to.contain("spreadsheetml");
+  });
+
+  test("adjunta archivo compras.xlsx", function() {
+    expect(res.getHeader("content-disposition")).to.contain("compras.xlsx");
+  });
+}

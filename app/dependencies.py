@@ -37,6 +37,53 @@ def get_filtros(
 
 
 @dataclass
+class FiltrosCompras:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    categoria: str | None = None
+    proveedor: str | None = None
+    ambito: Literal["nacional", "internacional"] | None = None
+    fraccion: str | None = None
+    q: str | None = None
+
+
+def get_filtros_compras(
+    fecha_desde: Annotated[
+        date | None, Query(description="Fecha inicial (YYYY-MM-DD)")
+    ] = None,
+    fecha_hasta: Annotated[
+        date | None, Query(description="Fecha final (YYYY-MM-DD)")
+    ] = None,
+    categoria: Annotated[
+        str | None, Query(description="Categoría exacta; 'Sin categoría' para vacías")
+    ] = None,
+    proveedor: Annotated[
+        str | None, Query(description="Proveedor (contiene)")
+    ] = None,
+    ambito: Annotated[
+        Literal["nacional", "internacional"] | None,
+        Query(description="Ámbito de la compra"),
+    ] = None,
+    fraccion: Annotated[
+        str | None, Query(description="Fracción arancelaria exacta")
+    ] = None,
+    q: Annotated[
+        str | None,
+        Query(description="Busca en descripción, proveedor o fracción"),
+    ] = None,
+) -> FiltrosCompras:
+    return FiltrosCompras(
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        categoria=categoria,
+        proveedor=proveedor,
+        ambito=ambito,
+        fraccion=fraccion,
+        q=q,
+    )
+
+
+@dataclass
 class Paginacion:
     page: int = 1
     page_size: int = 50
@@ -69,3 +116,23 @@ def get_orden(
     desc: Annotated[bool, Query(description="Orden descendente")] = True,
 ) -> Orden:
     return Orden(order_by=order_by, desc=desc)
+
+
+OrdenCompras = Literal[
+    "fecha", "importe_mxn", "precio_unitario_mxn", "cantidad", "proveedor"
+]
+
+
+@dataclass
+class OrdenComprasParams:
+    order_by: OrdenCompras = "fecha"
+    desc: bool = True
+
+
+def get_orden_compras(
+    order_by: Annotated[
+        OrdenCompras, Query(description="Campo de ordenamiento de compras")
+    ] = "fecha",
+    desc: Annotated[bool, Query(description="Orden descendente")] = True,
+) -> OrdenComprasParams:
+    return OrdenComprasParams(order_by=order_by, desc=desc)

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,8 +14,10 @@ from app.dependencies import (
 )
 from app.models import Importacion
 from app.schemas import (
+    ComparativoOut,
     ImportadorRow,
     KpisOut,
+    MatrizOut,
     MensualRow,
     Page,
     PaisOrigenRow,
@@ -150,3 +154,73 @@ def reporte_kpis(
     filtros: Filtros = Depends(get_filtros),
 ) -> KpisOut:
     return KpisOut.model_validate(dict(consultas.kpis(db, filtros)))
+
+
+DimensionComparativo = Literal["partida", "pais_origen", "importador", "exportador"]
+MetricaAnalisis = Literal["valor_usd", "volumen_kg"]
+OrdenComparativo = Literal["delta_abs", "delta_pp", "valor_actual"]
+ColumnaMatriz = Literal["pais_origen", "exportador"]
+
+
+@router.get("/comparativo", response_model=ComparativoOut)
+def reporte_comparativo(
+    db: Session = Depends(get_db),
+    filtros: Filtros = Depends(get_filtros),
+    dimension: DimensionComparativo = Query(
+        "partida", description="Dimensión a comparar"
+    ),
+    mes: Annotated[
+        str | None,
+        Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="Mes YYYY-MM"),
+    ] = None,
+    comparar: Annotated[
+        str | None,
+        Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="Mes a comparar YYYY-MM"),
+    ] = None,
+    metrica: MetricaAnalisis = Query("valor_usd", description="Métrica comparada"),
+    order_by: OrdenComparativo = Query(
+        "delta_abs", description="Criterio de orden del top"
+    ),
+    top: int = Query(20, ge=1, le=200),
+    min_registros: int = Query(5, ge=0, le=10000),
+) -> dict:
+    data = consultas.comparativo(
+        db,
+        filtros,
+        dimension=dimension,
+        mes=mes,
+        comparar=comparar,
+        metrica=metrica,
+        order_by=order_by,
+        top=top,
+        min_registros=min_registros,
+    )
+    if data is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No hay datos para el mes o los filtros seleccionados.",
+        )
+    return data
+
+
+@router.get("/matriz", response_model=MatrizOut)
+def reporte_matriz(
+    db: Session = Depends(get_db),
+    filtros: Filtros = Depends(get_filtros),
+    columna: ColumnaMatriz = Query(
+        "pais_origen", description="Dimensión de las columnas"
+    ),
+    metrica: MetricaAnalisis = Query("valor_usd", description="Métrica de la matriz"),
+    top_filas: int = Query(20, ge=1, le=50),
+    top_columnas: int = Query(10, ge=1, le=50),
+    min_registros: int = Query(3, ge=0, le=10000),
+) -> dict:
+    return consultas.matriz(
+        db,
+        filtros,
+        columna=columna,
+        metrica=metrica,
+        top_filas=top_filas,
+        top_columnas=top_columnas,
+        min_registros=min_registros,
+    )

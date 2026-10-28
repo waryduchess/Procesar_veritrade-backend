@@ -61,6 +61,42 @@ CREATE TABLE importaciones (
     INDEX idx_mes           (mes)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------- Compras por artículo ----------
+CREATE TABLE compras_articulos (
+    id                       BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    fecha                    DATE NOT NULL,
+    categoria                VARCHAR(120),
+    fraccion_arancelaria     VARCHAR(30),
+    fraccion_valida          TINYINT(1) NOT NULL DEFAULT 0,
+    descripcion              VARCHAR(500) NOT NULL,
+
+    cantidad                 DECIMAL(18,4),
+    importe_mxn              DECIMAL(18,2) NOT NULL,
+    precio_unitario_mxn      DECIMAL(18,6),
+    moneda                   VARCHAR(3) NOT NULL DEFAULT 'MXN',
+
+    proveedor                VARCHAR(255) NOT NULL,
+    ambito                   VARCHAR(20) NOT NULL,
+
+    anio                     SMALLINT NOT NULL,
+    mes                      CHAR(7) NOT NULL,
+
+    archivo_origen           VARCHAR(255),
+    fila_origen              INT,
+    creado_en                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_compras_ambito CHECK (ambito IN ('nacional', 'internacional')),
+    INDEX idx_compras_fecha      (fecha),
+    INDEX idx_compras_categoria  (categoria),
+    INDEX idx_compras_fraccion   (fraccion_arancelaria),
+    INDEX idx_compras_valida     (fraccion_valida),
+    INDEX idx_compras_proveedor  (proveedor),
+    INDEX idx_compras_ambito     (ambito),
+    INDEX idx_compras_anio       (anio),
+    INDEX idx_compras_mes        (mes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------- Vistas para los reportes ----------
 CREATE OR REPLACE VIEW v_importadores AS
 SELECT

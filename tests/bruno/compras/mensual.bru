@@ -1,0 +1,35 @@
+meta {
+  name: Compras mensual
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/compras/mensual
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devuelve items", function() {
+    expect(res.getBody()).to.be.an("array");
+    expect(res.getBody().length).to.be.above(0);
+  });
+
+  test("ordenado por mes ascendente", function() {
+    const meses = res.getBody().map((i) => i.mes);
+    expect(meses).to.eql([...meses].sort());
+  });
+
+  test("cada mes trae importes y conteo", function() {
+    const item = res.getBody()[0];
+    expect(item.mes).to.match(/^\d{4}-\d{2}$/);
+    expect(item.importe_mxn).to.be.a("number");
+    expect(item.registros).to.be.above(0);
+    expect(item.completo).to.be.a("boolean");
+  });
+}

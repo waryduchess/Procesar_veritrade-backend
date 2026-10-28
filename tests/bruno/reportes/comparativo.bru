@@ -1,0 +1,39 @@
+meta {
+  name: Comparativo mensual
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/reportes/comparativo?top=5
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("elige el último mes completo por defecto", function() {
+    const body = res.getBody();
+    const completos = body.periodos.filter((p) => p.completo);
+    expect(body.periodo.mes).to.equal(completos[completos.length - 1].mes);
+    expect(body.periodo_anterior.mes).to.be.a("string");
+    expect(body.periodo.completo).to.equal(true);
+  });
+
+  test("devuelve items comparables", function() {
+    const body = res.getBody();
+    expect(body.items).to.be.an("array");
+    expect(body.items[0]).to.have.property("variacion_pct");
+    expect(body.items[0]).to.have.property("delta_pp");
+    expect(body.items[0]).to.have.property("estado");
+    expect(body.items[0]).to.have.property("muestra_suficiente");
+  });
+
+  test("enero se marca incompleto", function() {
+    const enero = res.getBody().periodos.find((p) => p.mes === "2026-01");
+    expect(enero.completo).to.equal(false);
+  });
+}

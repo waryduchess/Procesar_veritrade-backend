@@ -142,24 +142,78 @@ def exportar(df_limpio: pd.DataFrame, tablas: dict, ruta) -> None:
             tabla.to_excel(writer, sheet_name=nombre[:31], index=False)
 
 
+def _preparar(
+    ruta_entrada,
+    hoja: str = HOJA_DEFECTO,
+    fila_header: int = FILA_ENCABEZADO_DEFECTO,
+) -> tuple[pd.DataFrame, int]:
+    df = cargar_excel(ruta_entrada, hoja, fila_header)
+    filas_entrada = len(df)
+    df = limpiar(df)
+    df = enriquecer(df)
+    return df, filas_entrada
+
+
+def _resumen(df: pd.DataFrame, tablas: dict, ruta_salida) -> dict:
+    return {
+        "filas_limpias": len(df),
+        "columnas": int(df.shape[1]),
+        "archivo_salida": str(ruta_salida),
+        "tablas": {k: len(v) for k, v in tablas.items() if v is not None and not v.empty},
+    }
+
+
 def procesar(
     ruta_entrada,
     ruta_salida,
     hoja: str = HOJA_DEFECTO,
     fila_header: int = FILA_ENCABEZADO_DEFECTO,
 ) -> dict:
-    df = cargar_excel(ruta_entrada, hoja, fila_header)
-    filas_entrada = len(df)
-
-    df = limpiar(df)
-    df = enriquecer(df)
+    df, filas_entrada = _preparar(ruta_entrada, hoja, fila_header)
     tablas = generar_tablas(df)
     exportar(df, tablas, ruta_salida)
 
     return {
         "filas_entrada": filas_entrada,
-        "filas_limpias": len(df),
-        "columnas": int(df.shape[1]),
-        "archivo_salida": str(ruta_salida),
-        "tablas": {k: len(v) for k, v in tablas.items() if v is not None and not v.empty},
+        **_resumen(df, tablas, ruta_salida),
+    }
+
+
+def procesar_lote(
+    rutas: list,
+    ruta_salida,
+    hoja: str = HOJA_DEFECTO,
+    fila_header: int = FILA_ENCABEZADO_DEFECTO,
+) -> dict:
+    if not rutas:
+        raise ValueError("No se recibieron archivos para procesar")
+
+    frames = []
+    archivos = []
+    for ruta in rutas:
+        try:
+            df, filas_entrada = _preparar(ruta, hoja, fila_header)
+        except Exception as exc:
+            raise ValueError(
+                f"Error procesando {Path(ruta).name}: {exc}"
+            ) from exc
+
+        frames.append(df)
+        archivos.append(
+            {
+                "archivo": str(ruta),
+                "filas_entrada": filas_entrada,
+                "filas_limpias": len(df),
+            }
+        )
+
+    df = pd.concat(frames, ignore_index=True, sort=False)
+    df = df.drop_duplicates().reset_index(drop=True)
+    tablas = generar_tablas(df)
+    exportar(df, tablas, ruta_salida)
+
+    return {
+        "filas_entrada": sum(a["filas_entrada"] for a in archivos),
+        "archivos": archivos,
+        **_resumen(df, tablas, ruta_salida),
     }

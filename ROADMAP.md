@@ -1,7 +1,7 @@
 
 # Roadmap — API Veritrade
 
-API de análisis de importaciones Veritrade México.
+API de análisis de importaciones y compras por artículo de Veritrade México.
 Stack: FastAPI + SQLAlchemy + MySQL + Docker.
 
 ---
@@ -128,9 +128,15 @@ Jobs síncronos en memoria (sin Redis/Celery).
 | Método | Endpoint                       | Descripción                              |
 |--------|--------------------------------|------------------------------------------|
 | POST   | /procesamiento/upload          | Sube Excel y procesa                     |
-| POST   | /procesamiento/cargar          | Carga Excel procesado a MySQL            |
+| POST   | /procesamiento/upload-lote     | Sube varios Excel y genera un limpio     |
+| POST   | /procesamiento/cargar          | Carga Excel (reemplaza o agrega)         |
 | GET    | /procesamiento/status/{job_id} | Estado de un job                         |
 | GET    | /procesamiento/historial       | Últimos jobs ejecutados                  |
+
+- [x] Carga incremental: `modo=agregar` y `cargar_mysql.py --agregar` conservan los datos existentes
+- [x] Carga múltiple: `/upload-lote` combina los Excel y hace una sola carga
+- [x] Copia por carga en `salida/historial/` con timestamp y modo
+- [x] Reemplazo transaccional con `DELETE` + inserción (sin `TRUNCATE`)
 
 Estrategia:
 - **Síncrono** al inicio (archivos hasta ~50 MB).
@@ -218,6 +224,38 @@ Completada (`app/services/agente.py`, `app/services/tools.py`, `app/services/llm
 - [x] Schemas `ConsultaRequest`/`MensajeHistorial`, `ToolCallOut`, `AgenteOut`; `openai` en `requirements.txt`
 
 **Tests:** `tests/bruno/agente/` (consulta con tools y fuera de tema).
+
+### Fase 10 — Analítica comparativa y matriz
+
+Completada (`GET /reportes/comparativo` y `GET /reportes/matriz`).
+
+- [x] Comparativo mensual calendario con participación recalculada por período
+- [x] Variación porcentual, cambio en puntos porcentuales y estados nuevo/desaparece
+- [x] Matriz partida × país/proveedor con top N, “Otros” y participación por fila
+- [x] Marca de muestra suficiente y exclusión explícita de proveedores nulos
+- [x] Pestañas **Comparativo** y **Matriz** en el frontend
+
+### Fase 11 — Compras por artículo
+
+Completada (tabla `compras_articulos`, `app/services/compras.py`,
+`app/services/consultas_compras.py`, `app/routers/compras.py`). Módulo independiente
+en el frontend (`/compras`).
+
+- [x] Parser del CSV `ComprasporartículoBD707.csv` (UTF-8, encabezado fila 7, validación contra fila `Total`)
+- [x] Clasificación nacional/internacional configurable por proveedor (alias normalizados)
+- [x] Conservación de duplicados exactos y reporte de filas cero
+- [x] `fraccion_valida` + conteos de fracciones válidas, inválidas y sin capturar
+- [x] Carga transaccional `reemplazar`/`agregar`, copia del CSV en `uploads/compras/`
+- [x] `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos,exportar}`
+- [x] `POST /compras/importar` desde la interfaz
+- [x] Dashboard con KPIs, serie mensual, nacional vs internacional, categorías, proveedores, tabla y exportación
+- [x] Filtros server-side por fecha, categoría, proveedor, ámbito, fracción y búsqueda
+- [x] Importes normalizados a **MXN**; `Cantidad` no se suma globalmente porque mezcla kg y piezas
+- [x] Tests Bruno en `tests/bruno/compras/` (9 requests / 34 tests)
+
+> `Cantidad` se conserva y muestra por fila, pero no se agrega en totales porque el CSV
+> mezcla kilogramos y piezas. Los duplicados del archivo original se conservan por
+> decisión funcional.
 
 ---
 

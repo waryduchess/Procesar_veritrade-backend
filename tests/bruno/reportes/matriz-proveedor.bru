@@ -1,0 +1,27 @@
+meta {
+  name: Matriz producto × proveedor
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/reportes/matriz?columna=exportador&metrica=volumen_kg&top_filas=4&top_columnas=4
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("reporta operaciones sin exportador", function() {
+    const body = res.getBody();
+    expect(body.omitidos).to.have.property("sin_exportador");
+    expect(body.omitidos.sin_exportador).to.be.a("number");
+  });
+
+  test("usa la métrica de volumen", function() {
+    expect(res.getBody().metrica).to.equal("volumen_kg");
+  });
+}

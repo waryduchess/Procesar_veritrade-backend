@@ -1,0 +1,29 @@
+meta {
+  name: Compras exportar csv
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/compras/exportar?formato=csv&order_by=importe_mxn&desc=true
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("content-type csv", function() {
+    expect(res.getHeader("content-type")).to.contain("text/csv");
+  });
+
+  test("adjunta archivo compras.csv", function() {
+    expect(res.getHeader("content-disposition")).to.contain("compras.csv");
+  });
+
+  test("incluye encabezado de importe", function() {
+    expect(res.getBody()).to.contain("importe_mxn");
+  });
+}

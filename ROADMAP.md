@@ -274,6 +274,7 @@ Completada la fase backend (`app/services/agente.py`, `app/services/tools.py`,
 - [x] `modo=auto|consulta|informe`; informes en Markdown.
 - [x] `modulo=auto|importaciones|compras` y contexto de módulo en el historial.
 - [x] Sin límite de tokens de salida impuesto por la app por defecto (`0` omite `max_tokens`).
+- [x] Historial de hasta 40,000 caracteres por mensaje, resumen extractivo del asistente y contexto efectivo de ~12,000 caracteres.
 - [ ] Frontend: chat global, historial y módulo actual.
 - [ ] Pruebas Bruno de informe, aclaración y capacidades en frontend.
 

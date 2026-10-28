@@ -1,0 +1,40 @@
+meta {
+  name: Agente historial largo
+  type: http
+  seq: 8
+}
+
+script:pre-request {
+  bru.setVar("historialLargo", "x".repeat(5000));
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "hola",
+    "historial": [
+      {
+        "role": "assistant",
+        "content": "{{historialLargo}}",
+        "modulo": "importaciones"
+      }
+    ]
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("acepta historial mayor a 4000 caracteres", function() {
+    const body = res.getBody();
+    expect(body.respuesta).to.be.a("string");
+    expect(body.respuesta.length).to.be.above(0);
+  });
+}

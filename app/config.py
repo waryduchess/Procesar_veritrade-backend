@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     agente_top_max: int = 50
     agente_historial_mensajes: int = 12
     agente_historial_chars: int = 12000
+    agente_historial_resumen_chars: int = 2000
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -32,6 +32,8 @@ def aplicar_filtros(stmt: Select, filtros: FiltrosCompras) -> Select:
         stmt = stmt.where(
             CompraArticulo.proveedor.ilike(f"%{filtros.proveedor}%")
         )
+    if filtros.descripcion:
+        stmt = stmt.where(CompraArticulo.descripcion == filtros.descripcion)
     if filtros.ambito:
         stmt = stmt.where(CompraArticulo.ambito == filtros.ambito)
     if filtros.fraccion:
@@ -650,6 +652,15 @@ def meta(db: Session) -> dict:
             .order_by(CompraArticulo.proveedor)
         ).all()
     ]
+    descripciones = [
+        fila[0]
+        for fila in db.execute(
+            select(CompraArticulo.descripcion)
+            .where(func.trim(CompraArticulo.descripcion) != "")
+            .distinct()
+            .order_by(CompraArticulo.descripcion)
+        ).all()
+    ]
     fracciones = [
         fila[0]
         for fila in db.execute(
@@ -677,6 +688,7 @@ def meta(db: Session) -> dict:
     return {
         "categorias": categorias_bd,
         "proveedores": proveedores_bd,
+        "descripciones": descripciones,
         "fracciones": fracciones,
         "anios": anios,
         "ambitos": ["nacional", "internacional"],

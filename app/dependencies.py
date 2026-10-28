@@ -42,6 +42,7 @@ class FiltrosCompras:
     fecha_hasta: date | None = None
     categoria: str | None = None
     proveedor: str | None = None
+    descripcion: str | None = None
     ambito: Literal["nacional", "internacional"] | None = None
     fraccion: str | None = None
     q: str | None = None
@@ -60,6 +61,10 @@ def get_filtros_compras(
     proveedor: Annotated[
         str | None, Query(description="Proveedor (contiene)")
     ] = None,
+    descripcion: Annotated[
+        str | None,
+        Query(description="Descripción exacta del artículo"),
+    ] = None,
     ambito: Annotated[
         Literal["nacional", "internacional"] | None,
         Query(description="Ámbito de la compra"),
@@ -77,6 +82,7 @@ def get_filtros_compras(
         fecha_hasta=fecha_hasta,
         categoria=categoria,
         proveedor=proveedor,
+        descripcion=descripcion,
         ambito=ambito,
         fraccion=fraccion,
         q=q,

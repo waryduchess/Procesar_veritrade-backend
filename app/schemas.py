@@ -385,6 +385,7 @@ class CompraPrecioMensualRow(BaseModel):
 class ComprasMetaOut(BaseModel):
     categorias: list[str] = Field(default_factory=list)
     proveedores: list[str] = Field(default_factory=list)
+    descripciones: list[str] = Field(default_factory=list)
     fracciones: list[str] = Field(default_factory=list)
     anios: list[int] = Field(default_factory=list)
     ambitos: list[str] = Field(default_factory=lambda: ["nacional", "internacional"])

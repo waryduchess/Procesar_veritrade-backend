@@ -1,0 +1,111 @@
+{
+  "nota": "Catálogo de endpoints de solo lectura que alimentan las tools del agente. Las tools ejecutan los servicios internos; el agente no hace peticiones HTTP ni puede usar endpoints de escritura.",
+  "endpoints": [
+    {
+      "tool": "importaciones_kpis",
+      "metodo": "GET",
+      "ruta": "/reportes/kpis",
+      "modulo": "importaciones",
+      "descripcion": "Totales de valor USD, volumen KG, operaciones y número de actores.",
+      "params": ["fecha_desde", "fecha_hasta", "aduana", "pais_origen", "partida", "importador", "exportador"]
+    },
+    {
+      "tool": "importaciones_ranking",
+      "metodo": "GET",
+      "ruta": "/reportes/{importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,partidas,tipo-importacion}",
+      "modulo": "importaciones",
+      "descripcion": "Ranking agregado por dimensión con valor, volumen, registros, costo unitario, participación y Pareto.",
+      "params": ["dimension", "fecha_desde", "fecha_hasta", "aduana", "pais_origen", "partida", "importador", "exportador", "order_by", "top", "solo_principales"]
+    },
+    {
+      "tool": "importaciones_mensual",
+      "metodo": "GET",
+      "ruta": "/reportes/mensual",
+      "modulo": "importaciones",
+      "descripcion": "Serie mensual de valor, volumen, registros y costo unitario.",
+      "params": ["fecha_desde", "fecha_hasta", "aduana", "pais_origen", "partida", "importador", "exportador", "top"]
+    },
+    {
+      "tool": "importaciones_comparativo",
+      "metodo": "GET",
+      "ruta": "/reportes/comparativo",
+      "modulo": "importaciones",
+      "descripcion": "Comparación de dos meses por partida, país, importador o exportador.",
+      "params": ["dimension", "mes", "comparar", "metrica", "order_by", "top", "min_registros", "fecha_desde", "fecha_hasta", "aduana", "pais_origen", "partida", "importador", "exportador"],
+      "nota": "Los filtros globales de fecha se ignoran; el período se define con mes y comparar."
+    },
+    {
+      "tool": "importaciones_buscar",
+      "metodo": "GET",
+      "ruta": "/importaciones/buscar",
+      "modulo": "importaciones",
+      "descripcion": "Operaciones cuyo texto de descripción comercial contiene q.",
+      "params": ["q", "fecha_desde", "fecha_hasta", "aduana", "pais_origen", "partida", "importador", "exportador", "top"]
+    },
+    {
+      "tool": "importaciones_catalogo",
+      "metodo": "GET",
+      "ruta": "/meta/{aduanas,paises,partidas}",
+      "modulo": "importaciones",
+      "descripcion": "Catálogo de aduanas, países o partidas con su descripción.",
+      "params": ["tipo"]
+    },
+    {
+      "tool": "compras_kpis",
+      "metodo": "GET",
+      "ruta": "/compras/kpis",
+      "modulo": "compras",
+      "descripcion": "Importe total MXN, registros, proveedores, categorías, meses, nacional/internacional y cobertura de fechas.",
+      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"]
+    },
+    {
+      "tool": "compras_ranking",
+      "metodo": "GET",
+      "ruta": "/compras/{categorias,proveedores}",
+      "modulo": "compras",
+      "descripcion": "Ranking de categorías o proveedores por importe MXN, con registros y participación.",
+      "params": ["dimension", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q", "top"]
+    },
+    {
+      "tool": "compras_mensual",
+      "metodo": "GET",
+      "ruta": "/compras/mensual",
+      "modulo": "compras",
+      "descripcion": "Serie mensual de importe MXN, nacional/internacional, registros y bandera de mes completo.",
+      "params": ["fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"]
+    },
+    {
+      "tool": "compras_precio_producto",
+      "metodo": "GET",
+      "ruta": "/compras/precios y /compras/precios/mensual",
+      "modulo": "compras",
+      "descripcion": "Busca productos por texto o calcula precio promedio anual y serie mensual de una descripción exacta.",
+      "params": ["q", "descripcion", "anio", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "top"]
+    },
+    {
+      "tool": "compras_comparativo",
+      "metodo": "GET",
+      "ruta": "/compras/comparativo",
+      "modulo": "compras",
+      "descripcion": "Compara dos meses por descripción, categoría o proveedor.",
+      "params": ["dimension", "mes", "comparar", "metrica", "order_by", "top", "min_registros", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "q"],
+      "nota": "Los filtros globales de fecha se ignoran; el período se define con mes y comparar."
+    },
+    {
+      "tool": "compras_buscar",
+      "metodo": "GET",
+      "ruta": "/compras/articulos",
+      "modulo": "compras",
+      "descripcion": "Listado de compras filtrado; q busca en descripción, proveedor o fracción.",
+      "params": ["q", "fecha_desde", "fecha_hasta", "categoria", "proveedor", "ambito", "fraccion", "top"]
+    },
+    {
+      "tool": "compras_catalogo",
+      "metodo": "GET",
+      "ruta": "/compras/meta y /compras/precios",
+      "modulo": "compras",
+      "descripcion": "Catálogo de categorías, proveedores, fracciones válidas, años, ámbitos, descripciones y cobertura.",
+      "params": ["tipo", "q", "anio", "top"]
+    }
+  ]
+}

@@ -191,11 +191,14 @@ class ConsultaOut(BaseModel):
 class MensajeHistorial(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=4000)
+    modulo: Literal["importaciones", "compras", "mixto"] | None = None
 
 
 class ConsultaRequest(BaseModel):
     pregunta: str = Field(min_length=1, max_length=2000)
     historial: list[MensajeHistorial] | None = Field(default=None, max_length=50)
+    modulo: Literal["auto", "importaciones", "compras"] = "auto"
+    modo: Literal["auto", "consulta", "informe"] = "auto"
 
 
 class ToolCallOut(BaseModel):
@@ -207,6 +210,8 @@ class AgenteOut(BaseModel):
     respuesta: str
     tool_calls: list[ToolCallOut]
     datos_usados: list[Any]
+    modo: Literal["consulta", "informe"] | None = None
+    modulo: Literal["importaciones", "compras", "mixto"] | None = None
 
 
 class PeriodoInfo(BaseModel):

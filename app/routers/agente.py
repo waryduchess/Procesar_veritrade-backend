@@ -17,7 +17,13 @@ def consulta(payload: ConsultaRequest, db: Session = Depends(get_db)) -> dict:
         )
     historial = [m.model_dump() for m in payload.historial] if payload.historial else None
     try:
-        return agente.consultar(db, payload.pregunta, historial)
+        return agente.consultar(
+            db,
+            payload.pregunta,
+            historial,
+            modulo=payload.modulo,
+            modo=payload.modo,
+        )
     except agente.AgenteLimite as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except agente.AgenteError as exc:

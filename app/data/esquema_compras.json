@@ -1,0 +1,76 @@
+{
+  "tabla": "compras_articulos",
+  "descripcion": "Registro de compras por artículo de Veritrade México. Cada fila es una compra de un producto a un proveedor.",
+  "unidades": {
+    "importe_mxn": "pesos mexicanos (MXN)",
+    "cantidad": "unidad capturada por fila; mezcla kilogramos y piezas, no se debe sumar globalmente",
+    "precio_unitario_mxn": "MXN por unidad capturada en la fila",
+    "precio_promedio_mxn": "importe_mxn / cantidad (MXN por unidad), calculado por producto y período"
+  },
+  "columnas": {
+    "fecha": "fecha de la compra (YYYY-MM-DD)",
+    "categoria": "categoría del artículo; puede ser nula (se muestra como 'Sin categoría')",
+    "fraccion_arancelaria": "fracción arancelaria capturada; puede ser nula o inválida",
+    "fraccion_valida": "true si la fracción tiene formato válido",
+    "descripcion": "descripción exacta del artículo comprado",
+    "cantidad": "cantidad comprada; la unidad varía por artículo (kg, piezas, etc.)",
+    "importe_mxn": "importe bruto de la compra en MXN",
+    "precio_unitario_mxn": "precio unitario de la fila en MXN",
+    "moneda": "moneda; siempre MXN",
+    "proveedor": "empresa proveedora",
+    "ambito": "nacional o internacional",
+    "anio": "año de la compra",
+    "mes": "mes de la compra (YYYY-MM)",
+    "archivo_origen": "archivo CSV de origen",
+    "fila_origen": "fila del CSV de origen"
+  },
+  "metricas": {
+    "importe_total_mxn": "suma de importe_mxn",
+    "importe_nacional_mxn": "suma de importe_mxn con ambito=nacional",
+    "importe_internacional_mxn": "suma de importe_mxn con ambito=internacional",
+    "pct_internacional": "porcentaje del importe internacional sobre el importe total",
+    "registros": "número de filas/compras",
+    "proveedores": "número de proveedores distintos",
+    "categorias": "número de categorías distintas",
+    "precio_promedio_mxn": "SUM(importe_mxn) / SUM(cantidad) para una descripción y período; solo considera filas con cantidad > 0",
+    "pct_importe": "participación de una categoría o proveedor sobre el importe filtrado",
+    "variacion_pct": "variación porcentual entre el período actual y el comparado",
+    "share_actual": "participación en el período actual",
+    "delta_pp": "cambio en puntos porcentuales entre períodos"
+  },
+  "filtros": {
+    "fecha_desde": "YYYY-MM-DD",
+    "fecha_hasta": "YYYY-MM-DD",
+    "categoria": "categoría exacta; usa 'Sin categoría' para las vacías",
+    "proveedor": "texto (contiene)",
+    "ambito": "nacional | internacional",
+    "fraccion": "fracción arancelaria exacta",
+    "q": "texto que busca en descripción, proveedor o fracción; no busca en categoría",
+    "anio": "año para precios",
+    "top": "número de filas (máximo 50 en el agente)"
+  },
+  "comparativo": {
+    "descripcion": "Compara dos meses calendario. Por defecto usa el último mes completo contra el anterior.",
+    "dimensiones": ["descripcion", "categoria", "proveedor"],
+    "metricas": ["importe_mxn", "cantidad", "precio_promedio_mxn"],
+    "order_by": ["delta_abs", "delta_pp", "valor_actual"],
+    "nota": "Los filtros globales de fecha se ignoran; los períodos se eligen con mes y comparar. Para precio_promedio_mxn no se calculan share_actual, share_previo ni delta_pp.",
+    "muestra_suficiente": "true cuando ambos períodos tienen al menos min_registros registros"
+  },
+  "limitaciones": [
+    "No se debe sumar 'cantidad' globalmente porque mezcla unidades.",
+    "El precio promedio solo es comparable dentro de la misma descripción de producto.",
+    "Conserva duplicados exactos del archivo original.",
+    "Hay filas con cantidad e importe cero.",
+    "Muchas fracciones arancelarias están vacías o son inválidas; no las uses como identificador de producto.",
+    "El último mes puede estar incompleto; revisa el campo 'completo' de la serie mensual.",
+    "No hay datos de mercado, noticias, clima, competencia ni factores externos."
+  ],
+  "notas": [
+    "Todos los importes de Compras están en MXN.",
+    "Para buscar un producto usa compras_precio_producto con q y revisa las coincidencias antes de concluir.",
+    "Si hay varias descripciones candidatas, pide al usuario que elija.",
+    "No mezcles importes de Compras (MXN) con valores de Importaciones (USD).",
+    "Si una pregunta no se puede responder con estas columnas, indica que no tienes el dato."
+  ]
+}

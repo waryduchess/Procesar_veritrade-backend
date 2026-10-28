@@ -259,6 +259,24 @@ en el frontend (`/compras`).
 > mezcla kilogramos y piezas. Los duplicados del archivo original se conservan por
 > decisión funcional.
 
+### Fase 12 — Agente global de Importaciones y Compras (backend)
+
+Completada la fase backend (`app/services/agente.py`, `app/services/tools.py`,
+`app/data/esquema_compras.json`, `app/data/api_endpoints.json`,
+`app/data/playbooks.json`). El chat global del frontend queda pendiente.
+
+- [x] Contexto dual: esquemas de Importaciones y Compras.
+- [x] Catálogo de endpoints de solo lectura.
+- [x] Playbooks para producto, proveedor, categoría, país, precio, comparativo, recomendación e informe.
+- [x] Tools de Importaciones y Compras; comparativo de Importaciones.
+- [x] `pedir_aclaracion` para módulo, producto, proveedor o período ambiguo.
+- [x] `capacidades` para preguntas sobre alcance y endpoints.
+- [x] `modo=auto|consulta|informe`; informes en Markdown.
+- [x] `modulo=auto|importaciones|compras` y contexto de módulo en el historial.
+- [x] Sin límite de tokens de salida impuesto por la app por defecto (`0` omite `max_tokens`).
+- [ ] Frontend: chat global, historial y módulo actual.
+- [ ] Pruebas Bruno de informe, aclaración y capacidades en frontend.
+
 ---
 
 ## Contrato de endpoint (ejemplo)

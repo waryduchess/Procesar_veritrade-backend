@@ -21,11 +21,14 @@ class Settings(BaseSettings):
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_model: str = "openai/gpt-oss-120b"
 
-    agente_max_tool_calls: int = 4
-    agente_max_tokens: int = 700
-    agente_timeout: float = 30.0
+    agente_max_tool_calls: int = 12
+    agente_max_tokens: int = 0
+    agente_informe_max_tokens: int = 0
+    agente_timeout: float = 120.0
     agente_top_default: int = 10
     agente_top_max: int = 50
+    agente_historial_mensajes: int = 12
+    agente_historial_chars: int = 12000
 
     @property
     def cors_origins_list(self) -> list[str]:

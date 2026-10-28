@@ -1,0 +1,44 @@
+meta {
+  name: Agente compras informe
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Hazme un informe de compras de camarón en 2026",
+    "modulo": "compras",
+    "modo": "informe"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("responde en modo informe y módulo compras", function() {
+    const body = res.getBody();
+    expect(body.modo).to.equal("informe");
+    expect(body.modulo).to.equal("compras");
+    expect(body.respuesta.length).to.be.above(500);
+    expect(body.respuesta).to.include("MXN");
+  });
+
+  test("usa herramientas de compras sin errores", function() {
+    const body = res.getBody();
+    const nombres = body.tool_calls.map(function(t) { return t.name; });
+    expect(nombres.some(function(n) { return n.indexOf("compras_") === 0; })).to.equal(true);
+    body.datos_usados.forEach(function(d) {
+      if (d.resultado && typeof d.resultado === "object") {
+        expect(d.resultado).to.not.have.property("error");
+      }
+    });
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Agente modo auto
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Hazme un informe de compras de camarón",
+    "modulo": "compras"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("detecta modo informe", function() {
+    const body = res.getBody();
+    expect(body.modo).to.equal("informe");
+    expect(body.modulo).to.equal("compras");
+  });
+}

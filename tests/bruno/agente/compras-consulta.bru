@@ -1,0 +1,43 @@
+meta {
+  name: Agente compras consulta
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "¿Cuál es el importe total de compras y el top 3 de proveedores?",
+    "modulo": "compras"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("responde en modo consulta y módulo compras", function() {
+    const body = res.getBody();
+    expect(body.modo).to.equal("consulta");
+    expect(body.modulo).to.equal("compras");
+    expect(body.respuesta).to.be.a("string");
+    expect(body.respuesta.length).to.be.above(0);
+  });
+
+  test("usa herramientas de compras sin errores", function() {
+    const body = res.getBody();
+    const nombres = body.tool_calls.map(function(t) { return t.name; });
+    expect(nombres.some(function(n) { return n.indexOf("compras_") === 0; })).to.equal(true);
+    body.datos_usados.forEach(function(d) {
+      if (d.resultado && typeof d.resultado === "object") {
+        expect(d.resultado).to.not.have.property("error");
+      }
+    });
+  });
+}

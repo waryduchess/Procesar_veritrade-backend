@@ -1,0 +1,31 @@
+meta {
+  name: Agente capacidades
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "¿Qué puedes hacer y qué endpoints de solo lectura tienes?"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("usa la tool de capacidades", function() {
+    const body = res.getBody();
+    const nombres = body.tool_calls.map(function(t) { return t.name; });
+    expect(nombres).to.include("capacidades");
+    expect(body.respuesta).to.include("Importaciones");
+    expect(body.respuesta).to.include("Compras");
+  });
+}

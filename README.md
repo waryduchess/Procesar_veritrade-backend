@@ -38,6 +38,14 @@ DEEPSEEK_API_KEY=tu_api_key_de_deepseek
 DEEPSEEK_MODEL=deepseek-flash
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_THINKING=false
+
+# Agente (0 en tokens = sin límite impuesto por la app)
+AGENTE_MAX_TOOL_CALLS=12
+AGENTE_MAX_TOKENS=0
+AGENTE_INFORME_MAX_TOKENS=0
+AGENTE_TIMEOUT=120
+AGENTE_HISTORIAL_MENSAJES=12
+AGENTE_HISTORIAL_CHARS=12000
 ```
 
 ### 3. Levantar MySQL
@@ -237,35 +245,80 @@ curl -X POST localhost:8000/consulta -H 'Content-Type: application/json' \
 
 ### Agente (LLM + tools)
 
-`POST /agente/consulta` recibe `{"pregunta": "...", "historial": [...]}` (historial opcional) y responde en lenguaje natural
-usando **solo** resultados de la base de datos. El proveedor es configurable con
-`LLM_PROVIDER` (`deepseek` por defecto con `deepseek-flash`; o `groq`). El modelo
-elige entre 5 tools que ejecutan internamente `app/services/consultas.py`:
-`resumen_kpis`, `ranking(dimension=...)`, `serie_mensual`, `buscar_operaciones` y
-`catalogo`.
+`POST /agente/consulta` responde en lenguaje natural usando **solo** resultados de
+la base de datos. El proveedor es configurable con `LLM_PROVIDER` (`deepseek` por
+defecto con `deepseek-flash`; o `groq`).
 
-- **Memoria conversacional**: acepta `historial` (máx. 50 mensajes; usa los últimos 10) para preguntas de seguimiento. El servidor no guarda sesiones: el cliente envía el contexto en cada request.
-- **Proveedor**: `deepseek` (default, thinking desactivado) o `groq`; cambiar
-  `LLM_PROVIDER` o las API keys requiere reiniciar el backend.
-- **Sin SQL libre**: el modelo solo puede llamar tools acotadas.
-- **Anti-alucinación**: si no llama ninguna tool, responde
-  `No tengo ese dato en la base de datos.` y no inventa.
-- **Saludos/agradecimientos**: responde cordialmente en 1-2 líneas sin consultar
-  la BD (no llama tools).
-- Devuelve `respuesta`, `tool_calls` y `datos_usados` (auditoría de cada tool y su resultado).
+Request:
 
-```bash
-curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
-  -d '{"pregunta":"¿Cuál es el valor y volumen total importado?"}'
+```json
+{
+  "pregunta": "Hazme un informe de compras de camarón en 2026",
+  "historial": [],
+  "modulo": "auto",
+  "modo": "auto"
+}
 ```
 
-Para una pregunta de seguimiento, envía los turnos previos:
+- `modulo`: `auto`, `importaciones` o `compras`. Si es ambiguo, el agente pide aclaración.
+- `modo`: `auto`, `consulta` o `informe`. `auto` detecta informes, análisis y recomendaciones.
+- `historial`: máximo 50 mensajes; el servidor usa los últimos 12 y recorta por caracteres.
+- Response: `respuesta`, `tool_calls`, `datos_usados`, `modo` y `modulo`.
+
+**Contexto de la IA**
+
+- `app/data/esquema.json`: diccionario de Importaciones.
+- `app/data/esquema_compras.json`: diccionario de Compras.
+- `app/data/api_endpoints.json`: catálogo de endpoints de solo lectura y su tool.
+- `app/data/playbooks.json`: guías para producto, proveedor, categoría, país,
+  precios, comparativo, recomendación e informe.
+
+**Tools (15)**
+
+- Importaciones: `importaciones_kpis`, `importaciones_ranking`,
+  `importaciones_mensual`, `importaciones_comparativo`, `importaciones_buscar`,
+  `importaciones_catalogo`.
+- Compras: `compras_kpis`, `compras_ranking`, `compras_mensual`,
+  `compras_precio_producto`, `compras_comparativo`, `compras_buscar`,
+  `compras_catalogo`.
+- Control: `pedir_aclaracion` y `capacidades`.
+
+Las tools ejecutan internamente `app/services/consultas.py` y
+`app/services/consultas_compras.py`; no hacen peticiones HTTP contra la propia API.
+
+**Comportamiento**
+
+- Si no hay datos, responde `No tengo ese dato en la base de datos.`
+- Si el módulo, producto o proveedor es ambiguo, pide aclaración.
+- Los informes se entregan en Markdown dentro del chat.
+- Las recomendaciones incluyen hallazgo, evidencia y limitación.
+- No hay pronósticos, noticias ni conocimiento externo.
+- No se mezclan USD de Importaciones con MXN de Compras.
+- No se suman cantidades de Compras porque mezclan kg y piezas.
+
+**Límites de consumo**
+
+- La app **no impone un límite de tokens de salida** por defecto:
+  `AGENTE_MAX_TOKENS=0` y `AGENTE_INFORME_MAX_TOKENS=0` omiten `max_tokens` y dejan
+  que el proveedor use su máximo. Puedes fijar un valor positivo si necesitas
+  controlar costo o latencia.
+- `AGENTE_MAX_TOOL_CALLS=12` y `AGENTE_TIMEOUT=120`.
+- Los límites de saldo, tasa, contexto y tokens/día de la cuenta de DeepSeek/Groq
+  son externos a la app y no se pueden eliminar desde este código.
+- Sin saldo en DeepSeek, el endpoint responde `402`; con rate limit, `429`.
 
 ```bash
 curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
-  -d '{"pregunta":"¿Y qué proveedores les venden?","historial":[
+  -d '{"pregunta":"¿Cuál es el valor y volumen total importado?","modulo":"importaciones"}'
+```
+
+Para un seguimiento, envía los turnos previos:
+
+```bash
+curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
+  -d '{"pregunta":"¿Y qué proveedores les venden?","modulo":"importaciones","historial":[
     {"role":"user","content":"¿Quiénes son los top 3 importadores de la partida 304610100?"},
-    {"role":"assistant","content":"..."}
+    {"role":"assistant","content":"...","modulo":"importaciones"}
   ]}'
 ```
 
@@ -285,6 +338,10 @@ curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' 
 
 ```
 app/                 # API FastAPI (config, database, models, schemas, routers, services, utils)
+app/data/esquema.json              # diccionario de datos de Importaciones para el agente
+app/data/esquema_compras.json      # diccionario de datos de Compras para el agente
+app/data/api_endpoints.json        # endpoints de solo lectura disponibles para el agente
+app/data/playbooks.json            # guías de análisis, informes y recomendaciones
 app/data/proveedores_internacionales.json  # proveedores clasificados como internacionales
 database/            # schema.sql (tabla + vistas)
 salida/              # Excel procesado y copias en salida/historial/ (ignorado)

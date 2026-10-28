@@ -1,0 +1,31 @@
+meta {
+  name: Agente pide aclaración
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/agente/consulta
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pregunta": "Hazme un informe de proveedores"
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("pide aclaración y no inventa módulo", function() {
+    const body = res.getBody();
+    const nombres = body.tool_calls.map(function(t) { return t.name; });
+    expect(nombres).to.include("pedir_aclaracion");
+    expect(body.modulo).to.equal(null);
+    expect(body.respuesta.length).to.be.above(0);
+  });
+}

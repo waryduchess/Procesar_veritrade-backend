@@ -304,6 +304,37 @@ def _ejecutar_tool(db: Session, nombre: str, args: dict):
         return {"error": f"No se pudo ejecutar {nombre}: {exc}"}
 
 
+def _recortar(texto: str, limite: int) -> str:
+    if len(texto) <= limite:
+        return texto
+    corte = texto[:limite]
+    for separador in ("\n\n", "\n", ". ", " "):
+        posicion = corte.rfind(separador)
+        if posicion >= limite * 0.6:
+            return corte[:posicion].rstrip() + "..."
+    return corte.rstrip() + "..."
+
+
+def _resumir_asistente(texto: str) -> str:
+    lineas = []
+    for linea in texto.splitlines():
+        limpia = linea.strip()
+        if not limpia or limpia.startswith("|") or limpia.startswith("```"):
+            continue
+        lineas.append(limpia)
+    compacto = "\n".join(lineas)
+    limite = max(500, settings.agente_historial_resumen_chars)
+    if not compacto:
+        return _recortar(texto, limite)
+    if len(compacto) <= limite:
+        return compacto
+    cabeza = _recortar(compacto, max(400, limite - 500))
+    cola = compacto[-400:].strip()
+    if cola and not cabeza.endswith(cola):
+        return f"{cabeza}\n...\n{cola}"
+    return cabeza
+
+
 def _sanitizar_historial(historial: list[dict] | None) -> list[dict]:
     limite_mensajes = max(1, settings.agente_historial_mensajes)
     limite_chars = max(1000, settings.agente_historial_chars)
@@ -319,10 +350,13 @@ def _sanitizar_historial(historial: list[dict] | None) -> list[dict]:
         content = content.strip()
         if not content:
             continue
-        content = content[:4000]
-        modulo = msg.get("modulo")
-        if role == "assistant" and modulo in ("importaciones", "compras", "mixto"):
-            content = f"[módulo usado: {modulo}] {content}"
+        if role == "assistant":
+            content = _resumir_asistente(content)
+            modulo = msg.get("modulo")
+            if modulo in ("importaciones", "compras", "mixto"):
+                content = f"[módulo usado: {modulo}] {content}"
+        else:
+            content = _recortar(content, 4000)
         if recortado and total + len(content) > limite_chars:
             break
         recortado.append({"role": role, "content": content})

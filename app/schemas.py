@@ -190,7 +190,7 @@ class ConsultaOut(BaseModel):
 
 class MensajeHistorial(BaseModel):
     role: Literal["user", "assistant"]
-    content: str = Field(min_length=1, max_length=4000)
+    content: str = Field(min_length=1, max_length=40000)
     modulo: Literal["importaciones", "compras", "mixto"] | None = None
 
 

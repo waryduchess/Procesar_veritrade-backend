@@ -262,7 +262,8 @@ Request:
 
 - `modulo`: `auto`, `importaciones` o `compras`. Si es ambiguo, el agente pide aclaración.
 - `modo`: `auto`, `consulta` o `informe`. `auto` detecta informes, análisis y recomendaciones.
-- `historial`: máximo 50 mensajes; el servidor usa los últimos 12 y recorta por caracteres.
+- `historial`: máximo 50 mensajes; cada mensaje acepta hasta 40,000 caracteres. El servidor usa los últimos 12, resume las respuestas del asistente y limita el contexto efectivo a ~12,000 caracteres.
+- Las respuestas largas no se reenvían completas al modelo: se conserva un resumen con encabezados, hallazgos y limitaciones.
 - Response: `respuesta`, `tool_calls`, `datos_usados`, `modo` y `modulo`.
 
 **Contexto de la IA**
@@ -303,6 +304,8 @@ Las tools ejecutan internamente `app/services/consultas.py` y
   que el proveedor use su máximo. Puedes fijar un valor positivo si necesitas
   controlar costo o latencia.
 - `AGENTE_MAX_TOOL_CALLS=12` y `AGENTE_TIMEOUT=120`.
+- `AGENTE_HISTORIAL_RESUMEN_CHARS=2000` controla el resumen de cada respuesta del
+  asistente enviado como historial.
 - Los límites de saldo, tasa, contexto y tokens/día de la cuenta de DeepSeek/Groq
   son externos a la app y no se pueden eliminar desde este código.
 - Sin saldo en DeepSeek, el endpoint responde `402`; con rate limit, `429`.

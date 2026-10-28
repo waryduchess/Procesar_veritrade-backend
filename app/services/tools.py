@@ -112,6 +112,42 @@ _DIMENSIONES_COMPARATIVO_IMPORTACIONES = (
 )
 _DIMENSIONES_COMPARATIVO_COMPRAS = ("descripcion", "categoria", "proveedor")
 
+_TABS_SUGERIDOS = {
+    "importaciones": (
+        "resumen",
+        "importadores",
+        "proveedores",
+        "productos",
+        "comparativo",
+        "matriz",
+        "operaciones",
+        "preguntas",
+    ),
+    "compras": ("graficas", "precios", "comparativo", "tabla"),
+}
+
+_CLAVES_FILTROS_SUGERIDOS = {
+    "importaciones": (
+        "fecha_desde",
+        "fecha_hasta",
+        "aduana",
+        "pais_origen",
+        "partida",
+        "importador",
+        "exportador",
+    ),
+    "compras": (
+        "fecha_desde",
+        "fecha_hasta",
+        "categoria",
+        "proveedor",
+        "descripcion",
+        "ambito",
+        "fraccion",
+        "q",
+    ),
+}
+
 
 @dataclass(frozen=True)
 class Tool:
@@ -501,6 +537,80 @@ def _pedir_aclaracion(db: Session, args: dict) -> dict:
     }
 
 
+def _sugerir_filtros(db: Session, args: dict) -> dict:
+    modulo = _texto(args, "modulo")
+    if modulo not in ("importaciones", "compras"):
+        return {"error": "modulo debe ser importaciones o compras."}
+
+    tab = _texto(args, "tab")
+    tabs = _TABS_SUGERIDOS[modulo]
+    if tab not in tabs:
+        tab = "graficas" if modulo == "compras" else "resumen"
+
+    raw = args.get("filtros")
+    if not isinstance(raw, dict):
+        raw = {}
+
+    claves = _CLAVES_FILTROS_SUGERIDOS[modulo]
+    filtros = {
+        clave: str(valor).strip()
+        for clave, valor in raw.items()
+        if clave in claves and valor is not None and str(valor).strip()
+    }
+    if not filtros:
+        return {"error": "Falta al menos un filtro para sugerir."}
+
+    return {"modulo": modulo, "tab": tab, "filtros": filtros}
+
+
+def filtros_sugeridos_desde_llamadas(llamadas: list[dict]) -> dict | None:
+    for llamada in reversed(llamadas):
+        nombre = llamada.get("name")
+        args = llamada.get("args")
+        if not isinstance(nombre, str) or not isinstance(args, dict):
+            continue
+        if nombre == "sugerir_filtros":
+            continue
+
+        if nombre.startswith("compras_"):
+            modulo = "compras"
+            if nombre == "compras_buscar":
+                tab = "tabla"
+            elif nombre == "compras_precio_producto":
+                tab = "precios"
+            elif nombre == "compras_comparativo":
+                tab = "comparativo"
+            else:
+                tab = "graficas"
+        elif nombre.startswith("importaciones_"):
+            modulo = "importaciones"
+            if nombre == "importaciones_buscar":
+                tab = "operaciones"
+            elif nombre == "importaciones_comparativo":
+                tab = "comparativo"
+            elif nombre == "importaciones_ranking" and args.get("dimension") == "importadores":
+                tab = "importadores"
+            elif nombre == "importaciones_ranking" and args.get("dimension") == "proveedores":
+                tab = "proveedores"
+            elif nombre == "importaciones_ranking" and args.get("dimension") == "partidas":
+                tab = "productos"
+            else:
+                tab = "resumen"
+        else:
+            continue
+
+        claves = _CLAVES_FILTROS_SUGERIDOS[modulo]
+        filtros = {
+            clave: str(args[clave]).strip()
+            for clave in claves
+            if args.get(clave) is not None and str(args[clave]).strip()
+        }
+        if not filtros:
+            continue
+        return {"modulo": modulo, "tab": tab, "filtros": filtros}
+    return None
+
+
 def _capacidades(db: Session, args: dict) -> dict:
     catalogo = _endpoints()
     return {
@@ -713,6 +823,41 @@ TOOLS: dict[str, Tool] = {
                 },
             },
             required=["pregunta"],
+        ),
+        _tool(
+            "sugerir_filtros",
+            "Registra filtros para que el usuario pueda abrirlos en una vista de la interfaz. No navega ni aplica filtros; el frontend pedirá confirmación. Úsala cuando la respuesta permita ver los mismos datos en una pestaña.",
+            _sugerir_filtros,
+            {
+                "modulo": {
+                    "type": "string",
+                    "enum": ["importaciones", "compras"],
+                },
+                "tab": {
+                    "type": ["string", "null"],
+                    "enum": [
+                        "resumen",
+                        "importadores",
+                        "proveedores",
+                        "productos",
+                        "comparativo",
+                        "matriz",
+                        "operaciones",
+                        "preguntas",
+                        "graficas",
+                        "precios",
+                        "tabla",
+                        None,
+                    ],
+                    "description": "Pestaña destino de la vista",
+                },
+                "filtros": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "Filtros exactos que se aplicarían en la vista",
+                },
+            },
+            required=["modulo", "filtros"],
         ),
         _tool(
             "capacidades",

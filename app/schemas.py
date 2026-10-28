@@ -206,10 +206,10 @@ class ToolCallOut(BaseModel):
     args: dict = Field(default_factory=dict)
 
 
-class FiltrosVistaOut(BaseModel):
+class FiltrosSugeridos(BaseModel):
     modulo: Literal["importaciones", "compras"]
-    filtros: dict[str, str] = Field(default_factory=dict)
     tab: str | None = None
+    filtros: dict[str, str] = Field(default_factory=dict)
 
 
 class AgenteOut(BaseModel):
@@ -218,7 +218,8 @@ class AgenteOut(BaseModel):
     datos_usados: list[Any]
     modo: Literal["consulta", "informe"] | None = None
     modulo: Literal["importaciones", "compras", "mixto"] | None = None
-    filtros_sugeridos: FiltrosVistaOut | None = None
+    sugerencias: list[str] = Field(default_factory=list)
+    filtros_sugeridos: FiltrosSugeridos | None = None
 
 
 class PeriodoInfo(BaseModel):

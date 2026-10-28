@@ -11,9 +11,12 @@ from sqlalchemy.orm import Session
 from openai import APIStatusError, RateLimitError
 
 from app.config import settings
-from app.models import Importacion
-from app.services import consultas, consultas_compras, llm
-from app.services.tools import TOOLS, TOOL_DEFINITIONS
+from app.services import llm
+from app.services.tools import (
+    TOOLS,
+    TOOL_DEFINITIONS,
+    filtros_sugeridos_desde_llamadas,
+)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 ESQUEMA_FILE = DATA_DIR / "esquema.json"
@@ -187,6 +190,9 @@ Control:
   y no haya una interpretación razonable.
 - capacidades: úsala cuando pregunten qué puedes hacer, qué datos consultas o qué
   endpoints tienes.
+- sugerir_filtros: úsala cuando la respuesta permita ver los mismos datos en una
+  pestaña de la interfaz y existan filtros claros. No navegues ni apliques filtros;
+  solo registra módulo, pestaña y filtros para que el usuario confirme.
 
 Reglas de tools:
 - No respondas datos sin haber llamado a una tool.
@@ -205,6 +211,8 @@ Reglas de tools:
   tools de análisis. No trates la categoría como texto libre con 'q'.
 - Para un producto en Importaciones, revisa importaciones_catalogo(tipo=partidas) y
   usa la partida correspondiente.
+- Si la respuesta permite abrir una vista con los mismos filtros, llama primero a
+  sugerir_filtros. No afirmes que ya aplicaste los filtros.
 
 ==================================================
 CONTEXTO Y SEGUIMIENTO
@@ -241,6 +249,8 @@ RESPUESTAS, INFORMES Y RECOMENDACIONES
   "{SIN_DATO}"
 - Si los datos son parciales, muestra la cobertura y aclara qué falta.
 - Saludos o agradecimientos: responde en 1 o 2 líneas, sin tools.
+- Si ofreces siguientes pasos, termina con máximo 3 preguntas cortas.
+- No inventes sugerencias ni filtros que no estén respaldados por los datos.
 
 ==================================================
 CONTEXTO DE DATOS
@@ -339,6 +349,83 @@ def _resumir_asistente(texto: str) -> str:
     if cola and not cabeza.endswith(cola):
         return f"{cabeza}\n...\n{cola}"
     return cabeza
+
+
+def _sugerencias_aclaracion(datos: list[dict], llamadas: list[dict]) -> list[str]:
+    opciones: list[str] = []
+    for dato in datos:
+        if dato.get("tool") != "pedir_aclaracion":
+            continue
+        resultado = dato.get("resultado")
+        if not isinstance(resultado, dict):
+            continue
+        valores = resultado.get("opciones")
+        if not isinstance(valores, list):
+            continue
+        for valor in valores:
+            if isinstance(valor, str) and valor.strip():
+                opciones.append(valor.strip())
+
+    for llamada in llamadas:
+        if llamada.get("name") != "pedir_aclaracion":
+            continue
+        args = llamada.get("args")
+        if not isinstance(args, dict):
+            continue
+        valores = args.get("opciones")
+        if not isinstance(valores, list):
+            continue
+        for valor in valores:
+            if isinstance(valor, str) and valor.strip():
+                opciones.append(valor.strip())
+
+    return list(dict.fromkeys(opciones))[:10]
+
+
+def _preguntas_cierre(respuesta: str) -> list[str]:
+    preguntas: list[str] = []
+    for linea in respuesta.splitlines():
+        limpia = re.sub(r"^\s*(?:[-*+]|\d+\.)\s+", "", linea).strip()
+        if "?" not in limpia:
+            continue
+        for coincidencia in re.findall(r"[^?]+\?", limpia):
+            pregunta = coincidencia.strip()
+            if len(pregunta) < 6 or len(pregunta) > 240:
+                continue
+            if not pregunta.startswith("¿"):
+                pregunta = f"¿{pregunta}"
+            if pregunta not in preguntas:
+                preguntas.append(pregunta)
+    return preguntas[-3:]
+
+
+def _sugerencias_finales(
+    respuesta: str, datos: list[dict], llamadas: list[dict]
+) -> list[str]:
+    opciones = _sugerencias_aclaracion(datos, llamadas)
+    return opciones or _preguntas_cierre(respuesta)
+
+
+def _filtros_finales(datos: list[dict], llamadas: list[dict]) -> dict | None:
+    if any(dato.get("tool") == "pedir_aclaracion" for dato in datos):
+        return None
+    return _filtros_sugeridos(datos) or filtros_sugeridos_desde_llamadas(llamadas)
+
+
+def _filtros_sugeridos(datos: list[dict]) -> dict | None:
+    for dato in reversed(datos):
+        if dato.get("tool") != "sugerir_filtros":
+            continue
+        resultado = dato.get("resultado")
+        if not isinstance(resultado, dict):
+            continue
+        if resultado.get("modulo") not in ("importaciones", "compras"):
+            continue
+        filtros = resultado.get("filtros")
+        if not isinstance(filtros, dict) or not filtros:
+            continue
+        return resultado
+    return None
 
 
 def _sanitizar_historial(historial: list[dict] | None) -> list[dict]:
@@ -709,15 +796,18 @@ def consultar(
             respuesta = (msg.content or "").strip()
             if not llamadas and not _es_saludo(pregunta):
                 respuesta = SIN_DATO
-            return _resultado_agente(
-                db,
-                respuesta or SIN_DATO,
-                llamadas,
-                datos,
-                modo_final,
-                modulo,
-                pregunta,
-            )
+            texto_final = respuesta or SIN_DATO
+            return {
+                "respuesta": texto_final,
+                "tool_calls": llamadas,
+                "datos_usados": datos,
+                "modo": modo_final,
+                "modulo": _modulo_final(modulo, llamadas),
+                "sugerencias": _sugerencias_finales(
+                    texto_final, datos, llamadas
+                ),
+                "filtros_sugeridos": _filtros_finales(datos, llamadas),
+            }
 
         messages.append(_mensaje_assistant(msg))
 
@@ -739,15 +829,16 @@ def consultar(
                 }
             )
 
-    return _resultado_agente(
-        db,
-        (
-            "No pude completar la consulta con la información disponible. "
-            "Intenta ser más específico."
-        ),
-        llamadas,
-        datos,
-        modo_final,
-        modulo,
-        pregunta,
+    respuesta_final = (
+        "No pude completar la consulta con la información disponible. "
+        "Intenta ser más específico."
     )
+    return {
+        "respuesta": respuesta_final,
+        "tool_calls": llamadas,
+        "datos_usados": datos,
+        "modo": modo_final,
+        "modulo": _modulo_final(modulo, llamadas),
+        "sugerencias": _sugerencias_finales(respuesta_final, datos, llamadas),
+        "filtros_sugeridos": _filtros_finales(datos, llamadas),
+    }

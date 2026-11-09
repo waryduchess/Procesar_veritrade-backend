@@ -18,26 +18,56 @@ AMBITO_INTERNACIONAL = CompraArticulo.ambito == "internacional"
 AMBITO_NACIONAL = CompraArticulo.ambito == "nacional"
 
 
+def _valores(valor: str | list[str] | None) -> list[str]:
+    if not valor:
+        return []
+    valores = [valor] if isinstance(valor, str) else valor
+    return [item.strip() for item in valores if item and item.strip()]
+
+
 def aplicar_filtros(stmt: Select, filtros: FiltrosCompras) -> Select:
     if filtros.fecha_desde is not None:
         stmt = stmt.where(CompraArticulo.fecha >= filtros.fecha_desde)
     if filtros.fecha_hasta is not None:
         stmt = stmt.where(CompraArticulo.fecha <= filtros.fecha_hasta)
-    if filtros.categoria:
-        if filtros.categoria == CATEGORIA_SIN_DATO:
-            stmt = stmt.where(CompraArticulo.categoria.is_(None))
-        else:
-            stmt = stmt.where(CompraArticulo.categoria == filtros.categoria)
-    if filtros.proveedor:
+
+    categorias = _valores(filtros.categoria)
+    if categorias:
+        clausulas = []
+        if CATEGORIA_SIN_DATO in categorias:
+            clausulas.append(CompraArticulo.categoria.is_(None))
+        valores = [
+            categoria
+            for categoria in categorias
+            if categoria != CATEGORIA_SIN_DATO
+        ]
+        if valores:
+            clausulas.append(CompraArticulo.categoria.in_(valores))
+        stmt = stmt.where(or_(*clausulas))
+
+    proveedores = _valores(filtros.proveedor)
+    if proveedores:
         stmt = stmt.where(
-            CompraArticulo.proveedor.ilike(f"%{filtros.proveedor}%")
+            or_(
+                *[
+                    CompraArticulo.proveedor.ilike(f"%{valor}%")
+                    for valor in proveedores
+                ]
+            )
         )
-    if filtros.descripcion:
-        stmt = stmt.where(CompraArticulo.descripcion == filtros.descripcion)
-    if filtros.ambito:
-        stmt = stmt.where(CompraArticulo.ambito == filtros.ambito)
-    if filtros.fraccion:
-        stmt = stmt.where(CompraArticulo.fraccion_arancelaria == filtros.fraccion)
+
+    descripciones = _valores(filtros.descripcion)
+    if descripciones:
+        stmt = stmt.where(CompraArticulo.descripcion.in_(descripciones))
+
+    ambitos = _valores(filtros.ambito)
+    if ambitos:
+        stmt = stmt.where(CompraArticulo.ambito.in_(ambitos))
+
+    fracciones = _valores(filtros.fraccion)
+    if fracciones:
+        stmt = stmt.where(CompraArticulo.fraccion_arancelaria.in_(fracciones))
+
     if filtros.q:
         patron = f"%{filtros.q}%"
         stmt = stmt.where(

@@ -280,6 +280,19 @@ Completada la fase backend (`app/services/agente.py`, `app/services/tools.py`,
 - [ ] Frontend: chat global, historial, módulo actual y aplicación de filtros sugeridos.
 - [ ] Pruebas Bruno de informe, aclaración y capacidades en frontend.
 
+### Fase 13 — Aduanas en Importaciones
+
+Completada la pestaña y el endpoint; integración con el chatbot y pruebas Bruno
+quedan pendientes.
+
+- [x] `GET /reportes/aduanas` con filtros globales, ranking por valor/volumen y Pareto.
+- [x] `DIM_ADUANA` y schema `AduanaRow`.
+- [x] Pestaña **Aduanas** en Importaciones con KPIs, ranking, concentración, ficha
+  de la aduana seleccionada y detalle de países, importadores y partidas.
+- [ ] Integrar la dimensión `aduanas` y la pestaña Aduanas al chatbot
+  (`importaciones_ranking`, sugerencias de pestaña y filtros).
+- [ ] Documentar y agregar pruebas Bruno de `/reportes/aduanas`.
+
 ---
 
 ## Contrato de endpoint (ejemplo)

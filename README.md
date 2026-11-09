@@ -160,7 +160,7 @@ npx -y @usebruno/cli run --env local
 ## Endpoints
 
 - `GET /health`
-- `GET /reportes/{importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,tipo-importacion,partidas,mensual,kpis,comparativo,matriz}`
+- `GET /reportes/{aduanas,importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,tipo-importacion,partidas,mensual,kpis,comparativo,matriz}`
 - `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
 - `GET /meta/{aduanas,paises,partidas}`
 - `GET /compras/{kpis,mensual,categorias,proveedores,meta,articulos,exportar}`

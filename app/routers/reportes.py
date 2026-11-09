@@ -14,6 +14,7 @@ from app.dependencies import (
 )
 from app.models import Importacion
 from app.schemas import (
+    AduanaRow,
     ComparativoOut,
     ImportadorRow,
     KpisOut,
@@ -94,6 +95,19 @@ def reporte_proveedores_por_pais(
         extra_where=consultas.SOLO_EXPORTADOR,
     )
     return construir_page(db, stmt, ProveedorPaisRow, pag.page, pag.page_size)
+
+
+@router.get("/aduanas", response_model=Page[AduanaRow])
+def reporte_aduanas(
+    db: Session = Depends(get_db),
+    filtros: Filtros = Depends(get_filtros),
+    pag: Paginacion = Depends(get_paginacion),
+    orden: Orden = Depends(get_orden),
+) -> dict:
+    stmt = consultas.ranking(
+        consultas.DIM_ADUANA, filtros, orden.order_by, orden.desc
+    )
+    return construir_page(db, stmt, AduanaRow, pag.page, pag.page_size)
 
 
 @router.get("/paises-origen", response_model=Page[PaisOrigenRow])

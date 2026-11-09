@@ -17,6 +17,7 @@ DIM_PROVEEDOR_PAIS = [
     Importacion.pais_origen.label("pais_origen"),
 ]
 DIM_PAIS = [Importacion.pais_origen.label("pais_origen")]
+DIM_ADUANA = [Importacion.aduana.label("aduana")]
 DIM_TIPO = [Importacion.tipo_importacion.label("tipo_importacion")]
 DIM_PARTIDA = [
     Importacion.partida_arancelaria.label("partida_arancelaria"),
@@ -46,21 +47,64 @@ def tipo_principales_expr():
     ).label("tipo_importacion")
 
 
+def _valores(valor: str | list[str] | None) -> list[str]:
+    if not valor:
+        return []
+    valores = [valor] if isinstance(valor, str) else valor
+    return [item.strip() for item in valores if item and item.strip()]
+
+
 def aplicar_filtros(stmt: Select, filtros: Filtros) -> Select:
     if filtros.fecha_desde is not None:
         stmt = stmt.where(Importacion.fecha >= filtros.fecha_desde)
     if filtros.fecha_hasta is not None:
         stmt = stmt.where(Importacion.fecha <= filtros.fecha_hasta)
-    if filtros.aduana:
-        stmt = stmt.where(Importacion.aduana.ilike(f"%{filtros.aduana}%"))
-    if filtros.pais_origen:
-        stmt = stmt.where(Importacion.pais_origen.ilike(f"%{filtros.pais_origen}%"))
-    if filtros.partida:
-        stmt = stmt.where(Importacion.partida_arancelaria.like(f"%{filtros.partida}%"))
-    if filtros.importador:
-        stmt = stmt.where(Importacion.importador.ilike(f"%{filtros.importador}%"))
-    if filtros.exportador:
-        stmt = stmt.where(Importacion.exportador.ilike(f"%{filtros.exportador}%"))
+
+    aduanas = _valores(filtros.aduana)
+    if aduanas:
+        stmt = stmt.where(
+            or_(*[Importacion.aduana.ilike(f"%{valor}%") for valor in aduanas])
+        )
+
+    paises = _valores(filtros.pais_origen)
+    if paises:
+        stmt = stmt.where(
+            or_(*[Importacion.pais_origen.ilike(f"%{valor}%") for valor in paises])
+        )
+
+    partidas = _valores(filtros.partida)
+    if partidas:
+        stmt = stmt.where(
+            or_(
+                *[
+                    Importacion.partida_arancelaria.like(f"%{valor}%")
+                    for valor in partidas
+                ]
+            )
+        )
+
+    importadores = _valores(filtros.importador)
+    if importadores:
+        stmt = stmt.where(
+            or_(
+                *[
+                    Importacion.importador.ilike(f"%{valor}%")
+                    for valor in importadores
+                ]
+            )
+        )
+
+    exportadores = _valores(filtros.exportador)
+    if exportadores:
+        stmt = stmt.where(
+            or_(
+                *[
+                    Importacion.exportador.ilike(f"%{valor}%")
+                    for valor in exportadores
+                ]
+            )
+        )
+
     return stmt
 
 

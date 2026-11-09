@@ -9,21 +9,36 @@ from fastapi import Query
 class Filtros:
     fecha_desde: date | None = None
     fecha_hasta: date | None = None
-    aduana: str | None = None
-    pais_origen: str | None = None
-    partida: str | None = None
-    importador: str | None = None
-    exportador: str | None = None
+    aduana: str | list[str] | None = None
+    pais_origen: str | list[str] | None = None
+    partida: str | list[str] | None = None
+    importador: str | list[str] | None = None
+    exportador: str | list[str] | None = None
 
 
 def get_filtros(
     fecha_desde: Annotated[date | None, Query(description="Fecha inicial (YYYY-MM-DD)")] = None,
     fecha_hasta: Annotated[date | None, Query(description="Fecha final (YYYY-MM-DD)")] = None,
-    aduana: Annotated[str | None, Query(description="Aduana (contiene)")] = None,
-    pais_origen: Annotated[str | None, Query(description="País de origen (contiene)")] = None,
-    partida: Annotated[str | None, Query(description="Partida arancelaria (contiene)")] = None,
-    importador: Annotated[str | None, Query(description="Importador (contiene)")] = None,
-    exportador: Annotated[str | None, Query(description="Exportador (contiene)")] = None,
+    aduana: Annotated[
+        list[str] | None,
+        Query(description="Aduana (contiene); repetir el parámetro para varias"),
+    ] = None,
+    pais_origen: Annotated[
+        list[str] | None,
+        Query(description="País de origen (contiene); repetir para varios"),
+    ] = None,
+    partida: Annotated[
+        list[str] | None,
+        Query(description="Partida arancelaria (contiene); repetir para varias"),
+    ] = None,
+    importador: Annotated[
+        list[str] | None,
+        Query(description="Importador (contiene); repetir para varios"),
+    ] = None,
+    exportador: Annotated[
+        list[str] | None,
+        Query(description="Exportador (contiene); repetir para varios"),
+    ] = None,
 ) -> Filtros:
     return Filtros(
         fecha_desde=fecha_desde,
@@ -40,11 +55,11 @@ def get_filtros(
 class FiltrosCompras:
     fecha_desde: date | None = None
     fecha_hasta: date | None = None
-    categoria: str | None = None
-    proveedor: str | None = None
-    descripcion: str | None = None
-    ambito: Literal["nacional", "internacional"] | None = None
-    fraccion: str | None = None
+    categoria: str | list[str] | None = None
+    proveedor: str | list[str] | None = None
+    descripcion: str | list[str] | None = None
+    ambito: str | list[str] | None = None
+    fraccion: str | list[str] | None = None
     q: str | None = None
 
 
@@ -56,21 +71,24 @@ def get_filtros_compras(
         date | None, Query(description="Fecha final (YYYY-MM-DD)")
     ] = None,
     categoria: Annotated[
-        str | None, Query(description="Categoría exacta; 'Sin categoría' para vacías")
+        list[str] | None,
+        Query(description="Categoría exacta; repetir para varias"),
     ] = None,
     proveedor: Annotated[
-        str | None, Query(description="Proveedor (contiene)")
+        list[str] | None,
+        Query(description="Proveedor (contiene); repetir para varios"),
     ] = None,
     descripcion: Annotated[
-        str | None,
-        Query(description="Descripción exacta del artículo"),
+        list[str] | None,
+        Query(description="Descripción exacta del artículo; repetir para varias"),
     ] = None,
     ambito: Annotated[
-        Literal["nacional", "internacional"] | None,
-        Query(description="Ámbito de la compra"),
+        list[str] | None,
+        Query(description="Ámbito de la compra; repetir para varios"),
     ] = None,
     fraccion: Annotated[
-        str | None, Query(description="Fracción arancelaria exacta")
+        list[str] | None,
+        Query(description="Fracción arancelaria exacta; repetir para varias"),
     ] = None,
     q: Annotated[
         str | None,

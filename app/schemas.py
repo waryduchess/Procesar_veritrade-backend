@@ -57,6 +57,17 @@ class PaisOrigenRow(ORMModel):
     porcentaje: float | None = None
 
 
+class AduanaRow(ORMModel):
+    aduana: str | None = None
+    valor_usd: float | None = None
+    volumen_kg: float | None = None
+    registros: int = 0
+    costo_unit_ponderado: float | None = None
+    pct_total: float | None = None
+    pct_acumulado: float | None = None
+    porcentaje: float | None = None
+
+
 class TipoImportacionRow(ORMModel):
     tipo_importacion: str | None = None
     valor_usd: float | None = None

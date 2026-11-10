@@ -562,6 +562,11 @@ def comparativo(
         total_actual = sum(fila["valor"] for fila in actual.values())
         total_previo = sum(fila["valor"] for fila in previo.values())
 
+    importe_total_actual = sum(fila["importe_mxn"] for fila in actual.values())
+    importe_total_previo = sum(fila["importe_mxn"] for fila in previo.values())
+    cantidad_total_actual = sum(fila["cantidad"] for fila in actual.values())
+    cantidad_total_previa = sum(fila["cantidad"] for fila in previo.values())
+
     claves = set(actual) | set(previo)
     items = []
     for clave in claves:
@@ -619,6 +624,10 @@ def comparativo(
                 "delta_pp": delta_pp,
                 "registros_actual": registros_actual,
                 "registros_previo": registros_previo,
+                "importe_actual": float(fila_actual.get("importe_mxn") or 0),
+                "importe_previo": float(fila_previa.get("importe_mxn") or 0),
+                "cantidad_actual": float(fila_actual.get("cantidad") or 0),
+                "cantidad_previo": float(fila_previa.get("cantidad") or 0),
                 "estado": estado,
                 "muestra_suficiente": (
                     registros_actual >= min_registros
@@ -651,6 +660,10 @@ def comparativo(
         "min_registros": min_registros,
         "total_actual": total_actual,
         "total_previo": total_previo,
+        "importe_total_actual": importe_total_actual,
+        "importe_total_previo": importe_total_previo,
+        "cantidad_total_actual": cantidad_total_actual,
+        "cantidad_total_previo": cantidad_total_previa,
         "items": items,
         "total_items": total_items,
     }

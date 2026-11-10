@@ -254,6 +254,10 @@ class ComparativoItem(BaseModel):
     delta_pp: float | None = None
     registros_actual: int = 0
     registros_previo: int = 0
+    importe_actual: float | None = None
+    importe_previo: float | None = None
+    cantidad_actual: float | None = None
+    cantidad_previo: float | None = None
     estado: Literal["sube", "baja", "nuevo", "desaparece", "sin_cambio"]
     muestra_suficiente: bool
 
@@ -268,6 +272,10 @@ class ComparativoOut(BaseModel):
     min_registros: int
     total_actual: float | None = None
     total_previo: float | None = None
+    importe_total_actual: float | None = None
+    importe_total_previo: float | None = None
+    cantidad_total_actual: float | None = None
+    cantidad_total_previo: float | None = None
     items: list[ComparativoItem]
     total_items: int
 

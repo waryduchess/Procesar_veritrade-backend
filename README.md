@@ -10,7 +10,10 @@ Backend para procesar datos de importaciones y compras por artículo de Veritrad
 - Docker + Docker Compose
 - Node.js (opcional, para los tests con Bruno)
 
-## Puesta en marcha
+## Puesta en marcha (desarrollo local)
+
+> Para desplegar en un VPS con Docker, salta a
+> [Despliegue en VPS con Docker](#despliegue-en-vps-con-docker-recomendado).
 
 ### 1. Clonar y crear el entorno virtual
 
@@ -69,22 +72,63 @@ Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `da
 - Documentación: http://localhost:8000/docs
 - Health check: http://localhost:8000/health → `{"status":"ok","db":"ok"}`
 
-### 5. Desplegar la API en el VPS con Docker
+## Despliegue en VPS con Docker (recomendado)
 
 El compose de producción solo levanta la API. **MySQL debe existir por separado**
 (servicio administrado o contenedor externo); no se incluye en este compose.
 
+```text
+Internet → Nginx (80/443, TLS)
+         ├── /       → frontend estático (dist/)
+         └── /api/   → veritrade_api:8000 (red veritrade_net)
+                            └── MySQL externo
+```
+
+La API se publica únicamente en `127.0.0.1:${API_PORT:-8000}`. No abras el puerto
+8000 al público: la API aún no tiene autenticación. El frontend debe entrar por
+Nginx usando `80/443` con TLS y, si Nginx corre en Docker, por la red
+`veritrade_net` con el host `veritrade_api`.
+
+### Requisitos
+
+- Docker Engine y Docker Compose v2.
+- MySQL 8 accesible desde el contenedor (host, red Docker o servicio administrado).
+- Dominio apuntando al VPS y certificado TLS.
+- `git` y `curl`.
+
+### 1. Preparar variables
+
 ```bash
+git clone <url-del-repo> Procesar_veritrade-backend
+cd Procesar_veritrade-backend
 cp .env.production.example .env
-# Edita MYSQL_URL con el host, usuario, contraseña y base reales.
+```
+
+Edita `.env` con los valores reales:
+
+```env
+MYSQL_URL=mysql+pymysql://usuario:password@db-host:3306/veritrade?charset=utf8mb4
+API_PORT=8000
+CORS_ORIGINS=https://tu-dominio.com
+DEEPSEEK_API_KEY=tu_api_key_de_deepseek
+```
+
+- `MYSQL_URL`: cadena completa de conexión a MySQL. Verifica que el usuario tenga
+  permisos sobre la base `veritrade`.
+- `API_PORT`: puerto local del VPS; se publica solo en `127.0.0.1`.
+- `CORS_ORIGINS`: dominios separados por coma. Con Nginx y `/api` en el mismo
+  dominio normalmente no se necesita CORS, pero conviene declararlo.
+- `DEEPSEEK_API_KEY` o `GROQ_API_KEY`: necesarias solo si se usará el chatbot.
+- No subas `.env` al repositorio.
+
+### 2. Construir y levantar
+
+```bash
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-La API queda publicada únicamente en `127.0.0.1:${API_PORT:-8000}`. No abras el
-puerto 8000 al público: la API aún no tiene autenticación. El frontend/proxy futuro
-debe entrar por la red Docker `veritrade_net` usando `veritrade_api:8000`, y publicar
-solo `80/443` con TLS.
+Verifica el servicio:
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
@@ -92,20 +136,107 @@ docker compose -f docker-compose.prod.yml logs -f api
 curl http://127.0.0.1:8000/health
 ```
 
-- El contenedor corre como usuario no root y usa un solo worker porque los jobs de
-  procesamiento viven en memoria.
-- El healthcheck consulta `/health` y exige `"db": "ok"`.
-- `uploads/` y `salida/` se guardan en los volúmenes `veritrade_uploads` y
-  `veritrade_salida`.
-- Para actualizar: `git pull`, rebuild y `up -d`.
+El healthcheck debe responder `{"status":"ok","db":"ok"}`. Si `db` no es `ok`,
+revisa `MYSQL_URL`, la red y el firewall de MySQL antes de continuar.
 
-Respaldo de los volúmenes:
+### 3. Red Docker y exposición
+
+- `docker-compose.prod.yml` crea la red `veritrade_net` y el contenedor
+  `veritrade_api`.
+- Si Nginx corre como contenedor, únelo a `veritrade_net` y usa
+  `http://veritrade_api:8000/`.
+- Si Nginx corre en el host, usa `http://127.0.0.1:8000/`.
+- No publiques `8000` ni `3306` en el firewall público.
+
+### 4. Nginx y TLS
+
+El frontend se compila como estático (`npm run build` en el repositorio del
+frontend) y Nginx sirve `dist/`. Ejemplo de configuración:
+
+```nginx
+server {
+    listen 80;
+    server_name tu-dominio.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name tu-dominio.com;
+
+    ssl_certificate     /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+
+    root  /var/www/veritrade-frontend;
+    index index.html;
+
+    # Subidas de Excel/CSV y respuestas largas del agente.
+    client_max_body_size 50m;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://veritrade_api:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 180s;
+    }
+}
+```
+
+- El slash final en `proxy_pass http://veritrade_api:8000/;` elimina el prefijo
+  `/api/` antes de llegar a FastAPI.
+- Si Nginx corre en el host, cambia el destino a `http://127.0.0.1:8000/`.
+- Si Nginx corre en un contenedor, monta los certificados y únelo a
+  `veritrade_net`.
+- Emite los certificados con Let's Encrypt/Certbot o el proveedor de TLS del VPS.
+- No expongas `/docs` ni `8000` directamente al público.
+
+### 5. Actualizar y hacer rollback
+
+Antes de actualizar, guarda la imagen actual:
+
+```bash
+docker image tag veritrade-api:latest veritrade-api:rollback
+git pull
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Rollback a la imagen anterior:
+
+```bash
+docker image tag veritrade-api:rollback veritrade-api:latest
+docker compose -f docker-compose.prod.yml up -d --force-recreate api
+```
+
+### 6. Respaldos
 
 ```bash
 mkdir -p backups
 docker run --rm -v veritrade_uploads:/data -v "$PWD/backups":/backup alpine tar czf /backup/uploads.tar.gz -C /data .
 docker run --rm -v veritrade_salida:/data -v "$PWD/backups":/backup alpine tar czf /backup/salida.tar.gz -C /data .
 ```
+
+### Notas de operación
+
+- El contenedor corre como usuario no root y usa un solo worker porque los jobs de
+  procesamiento viven en memoria. No escales a varias réplicas sin mover esos jobs
+  a un almacén compartido.
+- `uploads/` y `salida/` se guardan en los volúmenes `veritrade_uploads` y
+  `veritrade_salida`; respáldalos antes de recrear contenedores.
+- Reiniciar el contenedor pierde los jobs de procesamiento en curso y su historial
+  en memoria; los datos cargados en MySQL y los archivos de los volúmenes se
+  conservan.
+- Para revisar problemas: `docker compose -f docker-compose.prod.yml logs -f api`.
+- Si una subida responde `413`, aumenta `client_max_body_size` en Nginx.
+- Si el agente tarda más de lo normal, revisa `proxy_read_timeout` y los límites
+  del proveedor LLM.
 
 ## Pipeline de datos (opcional)
 

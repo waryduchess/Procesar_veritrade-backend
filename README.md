@@ -107,6 +107,9 @@ Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `da
 
 - Documentación: http://localhost:8001/docs
 - Health check: http://localhost:8001/health → `{"status":"ok","db":"ok"}`
+- En la integración same-origin, la SPA consume `http://localhost:8000/compras/api`
+  y Nginx elimina el prefijo antes de llegar a FastAPI. El acceso directo a `8001`
+  queda para debugging.
 
 ## Despliegue en VPS con Docker (recomendado)
 

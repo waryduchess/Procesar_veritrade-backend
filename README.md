@@ -34,7 +34,7 @@ El archivo `.env` está en `.gitignore`, así que créalo a partir de `.env.exam
 
 ```env
 MYSQL_URL=mysql+pymysql://veritrade:veritrade123@localhost:3307/veritrade?charset=utf8mb4
-API_PORT=8000
+API_PORT=8001
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=tu_api_key_de_deepseek
@@ -49,6 +49,42 @@ AGENTE_INFORME_MAX_TOKENS=0
 AGENTE_TIMEOUT=120
 AGENTE_HISTORIAL_MENSAJES=12
 AGENTE_HISTORIAL_CHARS=12000
+```
+
+### Autenticación JWT
+
+La API valida un JWT RS256 emitido por la suite PHP. En local se puede trabajar
+sin token con `AUTH_ENABLED=false`; en producción debe ser `true`.
+
+```env
+APP_ENV=local
+AUTH_ENABLED=false
+JWT_PUBLIC_KEY_PATH=
+JWT_PUBLIC_KEY=
+JWT_ISSUER=https://suite.midominio.com/
+JWT_AUDIENCE=compras-api
+JWT_LEEWAY_SECONDS=30
+EMPRESA_ID=1
+EMPRESA_CLAVE=MI_EMPRESA
+```
+
+- `JWT_PUBLIC_KEY_PATH` apunta a la llave pública PEM de la suite.
+- `JWT_PUBLIC_KEY` permite pegar el PEM directamente; usa `\n` para los saltos de línea.
+- `EMPRESA_ID` y `EMPRESA_CLAVE` deben coincidir con los claims del token.
+- `GET /health` es público.
+- El resto exige módulo `compras` y `compras.ver`.
+- `compras.importar` protege `POST /compras/importar` y los POST de `/procesamiento`.
+- `compras.exportar` protege `GET /compras/exportar` y `/exportar/*`.
+- La UI puede ocultar botones, pero la autorización real siempre es del backend.
+- Para generar tokens locales:
+
+```bash
+mkdir -p .secrets
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out .secrets/jwt-private.pem
+openssl rsa -pubout -in .secrets/jwt-private.pem -out .secrets/jwt-public.pem
+.venv/bin/python scripts/dev_jwt.py --private-key .secrets/jwt-private.pem \
+  --empresa-id 1 --empresa-clave MI_EMPRESA \
+  --issuer https://suite.midominio.com/ --audience compras-api
 ```
 
 ### 3. Levantar MySQL
@@ -66,11 +102,11 @@ Esto crea la base `veritrade`, el usuario `veritrade/veritrade123` y ejecuta `da
 ### 4. Correr la API
 
 ```bash
-.venv/bin/uvicorn app.main:app --reload
+.venv/bin/uvicorn app.main:app --reload --port 8001
 ```
 
-- Documentación: http://localhost:8000/docs
-- Health check: http://localhost:8000/health → `{"status":"ok","db":"ok"}`
+- Documentación: http://localhost:8001/docs
+- Health check: http://localhost:8001/health → `{"status":"ok","db":"ok"}`
 
 ## Despliegue en VPS con Docker (recomendado)
 
@@ -84,8 +120,9 @@ Internet → Nginx (80/443, TLS)
                             └── MySQL externo
 ```
 
-La API se publica únicamente en `127.0.0.1:${API_PORT:-8000}`. No abras el puerto
-8000 al público: la API aún no tiene autenticación. El frontend debe entrar por
+La API se publica únicamente en `127.0.0.1:${API_PORT:-8001}`. No abras el puerto
+8001 al público: la API aún no tiene autenticación. El puerto 8000 queda para la
+suite PHP. El frontend debe entrar por
 Nginx usando `80/443` con TLS y, si Nginx corre en Docker, por la red
 `veritrade_net` con el host `veritrade_api`.
 
@@ -108,7 +145,7 @@ Edita `.env` con los valores reales:
 
 ```env
 MYSQL_URL=mysql+pymysql://usuario:password@db-host:3306/veritrade?charset=utf8mb4
-API_PORT=8000
+API_PORT=8001
 CORS_ORIGINS=https://tu-dominio.com
 DEEPSEEK_API_KEY=tu_api_key_de_deepseek
 ```
@@ -133,7 +170,7 @@ Verifica el servicio:
 ```bash
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f api
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8001/health
 ```
 
 El healthcheck debe responder `{"status":"ok","db":"ok"}`. Si `db` no es `ok`,
@@ -145,8 +182,8 @@ revisa `MYSQL_URL`, la red y el firewall de MySQL antes de continuar.
   `veritrade_api`.
 - Si Nginx corre como contenedor, únelo a `veritrade_net` y usa
   `http://veritrade_api:8000/`.
-- Si Nginx corre en el host, usa `http://127.0.0.1:8000/`.
-- No publiques `8000` ni `3306` en el firewall público.
+- Si Nginx corre en el host, usa `http://127.0.0.1:8001/`.
+- No publiques `8001` ni `3306` en el firewall público; el `8000` pertenece a la suite PHP.
 
 ### 4. Nginx y TLS
 
@@ -191,11 +228,11 @@ server {
 
 - El slash final en `proxy_pass http://veritrade_api:8000/;` elimina el prefijo
   `/api/` antes de llegar a FastAPI.
-- Si Nginx corre en el host, cambia el destino a `http://127.0.0.1:8000/`.
+- Si Nginx corre en el host, cambia el destino a `http://127.0.0.1:8001/`.
 - Si Nginx corre en un contenedor, monta los certificados y únelo a
   `veritrade_net`.
 - Emite los certificados con Let's Encrypt/Certbot o el proveedor de TLS del VPS.
-- No expongas `/docs` ni `8000` directamente al público.
+- No expongas `/docs` ni `8001` directamente al público.
 
 ### 5. Actualizar y hacer rollback
 
@@ -276,7 +313,19 @@ fila 7). Carga inicial o reemplazo:
 - `fraccion_valida` solo es `true` cuando la fracción tiene formato válido; los
   valores vacíos se cuentan como `sin_fraccion`.
 
-## Tests (Bruno)
+## Tests
+
+### Unitarios de autenticación
+
+```bash
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+Cubren firma RS256, expiración, `iss`, `aud`, empresa, módulo, permisos, CORS con
+credenciales, 503 sin llave pública y rutas de importación/exportación. Usan llaves
+RSA generadas en memoria; no requieren PHP ni MySQL.
+
+### Bruno
 
 La colección está en `tests/bruno/`. El módulo de compras está en `tests/bruno/compras/`.
 
@@ -286,11 +335,15 @@ npx -y @usebruno/cli run --env local
 ```
 
 > El CLI de Bruno debe ejecutarse **desde la raíz de la colección** (`tests/bruno`).
-> También puedes abrir esa carpeta directamente en la app de Bruno.
+> Con `AUTH_ENABLED=false` en local no hace falta token.
 
 ## Endpoints
 
+Todas las rutas excepto `GET /health` requieren `Authorization: Bearer <jwt>` con
+módulo `compras` y el permiso correspondiente.
+
 - `GET /health`
+- `GET /auth/me` — devuelve el contexto del token (requiere `compras.ver`)
 - `GET /reportes/{aduanas,importadores,importadores-cancun,proveedores,proveedores-por-pais,paises-origen,tipo-importacion,partidas,mensual,kpis,comparativo,matriz}`
 - `GET /importaciones`, `/importaciones/{id}`, `/importaciones/buscar?q=`
 - `GET /meta/{aduanas,paises,partidas}`
@@ -360,7 +413,7 @@ ese producto:
 
 ```bash
 # % de peso de cada importador sobre el total del producto 304610100
-curl "localhost:8000/reportes/importadores?partida=304610100&order_by=volumen_kg&top=10"
+curl "localhost:8001/reportes/importadores?partida=304610100&order_by=volumen_kg&top=10"
 ```
 
 ### Capa de consulta (sin IA)
@@ -371,7 +424,7 @@ pregunta del glosario (`app/data/preguntas.json`) por palabras clave y devuelve 
 coincidencia responde `encontrada: false` con sugerencias. No usa LLM.
 
 ```bash
-curl -X POST localhost:8000/consulta -H 'Content-Type: application/json' \
+curl -X POST localhost:8001/consulta -H 'Content-Type: application/json' \
   -d '{"pregunta":"cuales son los principales importadores"}'
 ```
 
@@ -448,14 +501,14 @@ Las tools ejecutan internamente `app/services/consultas.py` y
 - Sin saldo en DeepSeek, el endpoint responde `402`; con rate limit, `429`.
 
 ```bash
-curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
+curl -X POST localhost:8001/agente/consulta -H 'Content-Type: application/json' \
   -d '{"pregunta":"¿Cuál es el valor y volumen total importado?","modulo":"importaciones"}'
 ```
 
 Para un seguimiento, envía los turnos previos:
 
 ```bash
-curl -X POST localhost:8000/agente/consulta -H 'Content-Type: application/json' \
+curl -X POST localhost:8001/agente/consulta -H 'Content-Type: application/json' \
   -d '{"pregunta":"¿Y qué proveedores les venden?","modulo":"importaciones","historial":[
     {"role":"user","content":"¿Quiénes son los top 3 importadores de la partida 304610100?"},
     {"role":"assistant","content":"...","modulo":"importaciones"}

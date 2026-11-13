@@ -61,7 +61,7 @@ Stack: FastAPI + SQLAlchemy + MySQL + Docker.
 
 Colección en `tests/bruno/`:
 - `bruno.json` — definición de colección
-- `environments/local.bru` — `baseUrl=http://localhost:8000`
+- `environments/local.bru` — `baseUrl=http://localhost:8001`
 - `health.bru` — 4 tests sobre GET /health
 
 Correr: `cd tests/bruno && npx @usebruno/cli run --env local`
@@ -77,7 +77,7 @@ Correr: `cd tests/bruno && npx @usebruno/cli run --env local`
 - [x] `app/database.py` con engine, SessionLocal, get_db
 - [x] `app/main.py` mínimo con FastAPI, CORS, /health
 - [x] Correr: `uvicorn app.main:app --reload`
-- [x] Verificar: http://localhost:8000/docs
+- [x] Verificar: http://localhost:8001/docs
 
 ### Fase 2 — Modelos y schemas (0.5 día)
 

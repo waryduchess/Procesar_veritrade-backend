@@ -2,8 +2,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
+from app.auth import require_permission
 from app.database import engine
 from app.schemas import JobOut
 from app.services import cargar, jobs, procesar
@@ -24,7 +25,11 @@ def _guardar_upload(archivo: UploadFile, job: jobs.Job, indice: int | None = Non
     return DIR_UPLOADS / f"{prefijo}_{nombre}"
 
 
-@router.post("/upload", response_model=JobOut)
+@router.post(
+    "/upload",
+    response_model=JobOut,
+    dependencies=[Depends(require_permission("compras.importar"))],
+)
 async def subir(
     archivo: UploadFile = File(...),
     hoja: str = Query("Veritrade", description="Nombre de la hoja del Excel"),
@@ -46,7 +51,11 @@ async def subir(
         return jobs.fallar(job, str(exc))
 
 
-@router.post("/upload-lote", response_model=JobOut)
+@router.post(
+    "/upload-lote",
+    response_model=JobOut,
+    dependencies=[Depends(require_permission("compras.importar"))],
+)
 async def subir_lote(
     archivos: list[UploadFile] = File(...),
     hoja: str = Query("Veritrade", description="Nombre de la hoja del Excel"),
@@ -74,7 +83,11 @@ async def subir_lote(
         return jobs.fallar(job, str(exc))
 
 
-@router.post("/cargar", response_model=JobOut)
+@router.post(
+    "/cargar",
+    response_model=JobOut,
+    dependencies=[Depends(require_permission("compras.importar"))],
+)
 def cargar_mysql(
     ruta: str | None = Query(None, description="Excel procesado a cargar"),
     hoja: str = Query("Datos_Limpios"),

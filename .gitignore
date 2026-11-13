@@ -12,8 +12,10 @@ uploads/
 *.xlsx
 !requirements.txt
 
-# Variables de entorno
+# Variables de entorno y llaves locales
 .env
+.secrets/
+jwt-*.pem
 
 # Respaldos locales de volúmenes
 backups/

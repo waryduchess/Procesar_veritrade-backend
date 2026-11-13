@@ -8,6 +8,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
+from app.auth import require_permission
 from app.database import engine, get_db
 from app.dependencies import (
     FiltrosCompras,
@@ -161,7 +162,7 @@ def compras_articulos(
     return construir_page(db, stmt, CompraArticuloOut, pag.page, pag.page_size)
 
 
-@router.get("/exportar")
+@router.get("/exportar", dependencies=[Depends(require_permission("compras.exportar"))])
 def compras_exportar(
     formato: Formato = "xlsx",
     db: Session = Depends(get_db),
@@ -182,7 +183,11 @@ def compras_exportar(
     )
 
 
-@router.post("/importar", response_model=ComprasImportOut)
+@router.post(
+    "/importar",
+    response_model=ComprasImportOut,
+    dependencies=[Depends(require_permission("compras.importar"))],
+)
 async def compras_importar(
     archivo: UploadFile = File(...),
     modo: ModoCarga = Query("reemplazar"),

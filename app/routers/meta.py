@@ -22,3 +22,13 @@ def paises(db: Session = Depends(get_db)) -> list[str]:
 @router.get("/partidas", response_model=list[PartidaMeta])
 def partidas(db: Session = Depends(get_db)) -> list[dict]:
     return consultas.meta_partidas(db)
+
+
+@router.get("/importadores", response_model=list[str])
+def importadores(db: Session = Depends(get_db)) -> list[str]:
+    return consultas.valores_meta(db, Importacion.importador)
+
+
+@router.get("/exportadores", response_model=list[str])
+def exportadores(db: Session = Depends(get_db)) -> list[str]:
+    return consultas.valores_meta(db, Importacion.exportador)
